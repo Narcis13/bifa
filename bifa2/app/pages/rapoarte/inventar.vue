@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'print' })
 useHead({ title: 'Lista de inventariere – BIFA' })
-const { apiQuery, filtre, perioada, gestiune, dirFin } = useRaport()
+const { apiQuery, filtre, perioada, gestiune, dirFin, comandant } = useRaport()
 const { data, status, error } = await useFetch('/api/rapoarte/inventar', { query: apiQuery })
 const membri = computed(() => [gestiune.value?.i_membru1, gestiune.value?.i_membru2, gestiune.value?.i_membru3].filter((m): m is string => !!m))
 </script>
@@ -115,6 +115,7 @@ const membri = computed(() => [gestiune.value?.i_membru1, gestiune.value?.i_memb
         { rol: 'Membri', detalii: membri },
         { rol: 'Gestionar', nume: gestiune?.gestionar },
         { rol: 'Contabilitate', nume: dirFin },
+        { rol: 'Aprob, comandant', nume: comandant },
       ]"
     />
     <p class="r-declaratie">

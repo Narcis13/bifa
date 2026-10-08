@@ -135,6 +135,7 @@ const optiuniStare = [{ v: null, l: 'Toate stările' }, ...STARI_MATERIAL.map(s 
               v-model="f.idcateg"
               input-id="categ"
               :options="optiuniCateg"
+              placeholder="Toate categoriile"
               option-label="denumire"
               option-value="id"
             />
@@ -145,6 +146,7 @@ const optiuniStare = [{ v: null, l: 'Toate stările' }, ...STARI_MATERIAL.map(s 
               v-model="f.idloc"
               input-id="loc"
               :options="optiuniLoc"
+              placeholder="Toate locurile"
               option-label="denumire"
               option-value="id"
               filter
@@ -156,6 +158,7 @@ const optiuniStare = [{ v: null, l: 'Toate stările' }, ...STARI_MATERIAL.map(s 
               v-model="f.stareMaterial"
               input-id="stare"
               :options="optiuniStare"
+              placeholder="Toate stările"
               option-label="l"
               option-value="v"
             />

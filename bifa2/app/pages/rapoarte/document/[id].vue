@@ -3,6 +3,8 @@ definePageMeta({ layout: 'print' })
 const route = useRoute()
 const { data: doc, status, error } = await useFetch(() => `/api/documente/${route.params.id}`)
 useHead({ title: computed(() => (doc.value ? `${doc.value.denumireScurta} ${doc.value.nrdoc}` : 'Document') + ' – BIFA') })
+const { data: setari } = useFetch<Setari>('/api/setari')
+const comandant = computed(() => [setari.value?.grad_comandant, setari.value?.nume_comandant].filter(Boolean).join(' '))
 const { data: gestiune } = useFetch<GestiuneDetalii>(() => `/api/gestiuni/${doc.value?.idgestiune}`, { immediate: !!doc.value })
 
 const unice = (vals: string[]) => [...new Set(vals)].join(' → ')
@@ -25,6 +27,7 @@ const semnaturi = computed(() => doc.value?.tip === 'i'
       { rol: 'Predat, gestionar', nume: gestiune.value?.gestionar },
       { rol: 'Primit', nume: '' },
       { rol: 'Verificat', nume: '' },
+      ...(doc.value?.denumireTip.includes('CASARE') ? [{ rol: 'Aprob, comandant', nume: comandant.value }] : []),
     ])
 </script>
 

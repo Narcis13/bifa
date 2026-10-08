@@ -56,5 +56,6 @@ export function useRaport() {
   /** Query for the report API: only defined values. */
   const apiQuery = computed(() => Object.fromEntries(Object.entries(q.value).filter(([, v]) => v !== undefined)))
   const dirFin = computed(() => [setari.value?.grad_dir_fin_con, setari.value?.nume_dir_fin_con].filter(Boolean).join(' '))
-  return { q, apiQuery, gestiune, setari, filtre, perioada, dirFin }
+  const comandant = computed(() => [setari.value?.grad_comandant, setari.value?.nume_comandant].filter(Boolean).join(' '))
+  return { q, apiQuery, gestiune, setari, filtre, perioada, dirFin, comandant }
 }

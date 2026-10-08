@@ -59,7 +59,8 @@ const numeCateg = (id?: number) => categorii.value.find(c => c.id === id)?.denum
 // ---- load an existing document ----
 if (idDoc.value) {
   try {
-    const doc = await $fetch(`/api/documente/${idDoc.value}`)
+    // useRequestFetch forwards the session cookie during SSR
+    const doc = await useRequestFetch()(`/api/documente/${idDoc.value}`)
     Object.assign(antet, { idtipoperatiuni: doc.idtipoperatiuni, tipMaterial: doc.tipMaterial, data: doc.data, nrdoc: doc.nrdoc })
     stareDoc.value = doc.stare
     const r = linieDinDocument(doc.tip, doc.linii)
@@ -100,7 +101,8 @@ const panou = reactive({
   destLoc: null as number | null,
   destCateg: null as number | null,
   destStare: 'NOU' as StareMaterial,
-  stocAles: null as StocRand | null,
+  /** Chosen stock row, as `id_reper|stare_material` (stable across stock reloads). */
+  stocCheie: null as string | null,
   materialAles: null as MaterialRand | null,
   cantitate: '',
   pret: '',
@@ -112,20 +114,23 @@ const refCantitate = ref()
 // stock for the chosen source (exits and transfers)
 const stoc = ref<StocRand[]>([])
 const seIncarcaStoc = ref(false)
+let cerereStoc = 0
 async function incarcaStoc() {
+  const nr = ++cerereStoc
   stoc.value = []
   if (!areSursa.value || !panou.sursaLoc || !panou.sursaCateg || !idCurent.value) return
   seIncarcaStoc.value = true
   try {
-    stoc.value = await $fetch<StocRand[]>('/api/stocuri', {
+    const r = await $fetch<StocRand[]>('/api/stocuri', {
       query: { idgestiune: idCurent.value, idloc: panou.sursaLoc, idcateg: panou.sursaCateg, tipMaterial: antet.tipMaterial, data: antet.data, exceptDocument: idDoc.value ?? undefined },
     })
+    if (nr === cerereStoc) stoc.value = r
   }
   catch (e) {
     notify.err(e)
   }
   finally {
-    seIncarcaStoc.value = false
+    if (nr === cerereStoc) seIncarcaStoc.value = false
   }
 }
 watch(() => [panou.sursaLoc, panou.sursaCateg, antet.data, antet.tipMaterial, tipDoc.value], incarcaStoc)
@@ -137,8 +142,9 @@ function folositInDocument(k: string) {
 }
 const optiuniStoc = computed(() => stoc.value.map((s) => {
   const disponibil = Dec.from(s.stoc) - folositInDocument(cheie({ idloc: panou.sursaLoc!, idcateg: panou.sursaCateg!, stareMaterial: s.stare_material }, s.id_reper))
-  return { ...s, disponibil: Dec.toFixed(disponibil, 2), eticheta: `${s.denumire} · ${s.stare_material}` }
+  return { ...s, cheie: `${s.id_reper}|${s.stare_material}`, disponibil: Dec.toFixed(disponibil, 2), eticheta: `${s.denumire} · ${s.stare_material}` }
 }).filter(s => Dec.from(s.disponibil) > 0n))
+const stocAles = computed(() => optiuniStoc.value.find(o => o.cheie === panou.stocCheie) ?? null)
 
 // materials for entries (server-side search)
 const sugestii = ref<MaterialRand[]>([])
@@ -152,7 +158,7 @@ async function cautaMaterial(e: { query: string }) {
   }
 }
 
-const pretPanou = computed(() => (areSursa.value ? (panou.stocAles?.pretmediu ?? '') : panou.pret))
+const pretPanou = computed(() => (areSursa.value ? (stocAles.value?.pretmediu ?? '') : panou.pret))
 const valoarePanou = computed(() => {
   try {
     if (!panou.cantitate || !pretPanou.value) return ''
@@ -164,7 +170,7 @@ const valoarePanou = computed(() => {
 })
 const normal = (v: string) => v.trim().replace(',', '.')
 
-watch(() => panou.stocAles, (s) => {
+watch(stocAles, (s) => {
   if (s && tipDoc.value === 't') panou.destStare = s.stare_material
 })
 watch(() => panou.materialAles, (m) => {
@@ -172,7 +178,7 @@ watch(() => panou.materialAles, (m) => {
 })
 
 function golestePanou() {
-  Object.assign(panou, { stocAles: null, materialAles: null, cantitate: '', pret: '' })
+  Object.assign(panou, { stocCheie: null, materialAles: null, cantitate: '', pret: '' })
   eroarePanou.value = ''
   editIndex.value = null
 }
@@ -183,9 +189,9 @@ function adaugaLinie() {
   if (!/^\d{1,10}(\.\d{1,2})?$/.test(cant) || Dec.from(cant) <= 0n) return (eroarePanou.value = 'Cantitate invalidă (maxim 2 zecimale, mai mare decât zero).')
   let linie: LinieUI
   if (areSursa.value) {
-    const s = panou.stocAles
+    const s = stocAles.value
     if (!panou.sursaLoc || !panou.sursaCateg || !s) return (eroarePanou.value = 'Alegeți locul, categoria și materialul din stoc.')
-    const disp = optiuniStoc.value.find(o => o.id_reper === s.id_reper && o.stare_material === s.stare_material)?.disponibil ?? '0'
+    const disp = s.disponibil
     if (Dec.from(cant) > Dec.from(disp)) return (eroarePanou.value = `Stoc insuficient: disponibil ${fmtNum(disp)} ${s.um}.`)
     linie = { idreper: s.id_reper, material: s.denumire, um: s.um, cantitate: cant, pret: s.pretmediu, sursa: { idloc: panou.sursaLoc, idcateg: panou.sursaCateg, stareMaterial: s.stare_material } }
     if (tipDoc.value === 't') {
@@ -211,12 +217,8 @@ function editeazaLinie(i: number) {
   const l = linii.value[i]!
   editIndex.value = i
   if (l.sursa) {
-    Object.assign(panou, { sursaLoc: l.sursa.idloc, sursaCateg: l.sursa.idcateg })
-    // the stock option is matched once the stock list is loaded
-    const unwatch = watch(stoc, () => {
-      panou.stocAles = stoc.value.find(s => s.id_reper === l.idreper && s.stare_material === l.sursa!.stareMaterial) ?? null
-      unwatch()
-    })
+    // the stock row is resolved from the key once the stock list (re)loads
+    Object.assign(panou, { sursaLoc: l.sursa.idloc, sursaCateg: l.sursa.idcateg, stocCheie: `${l.idreper}|${l.sursa.stareMaterial}` })
     incarcaStoc()
   }
   else {
@@ -225,6 +227,35 @@ function editeazaLinie(i: number) {
   }
   if (l.destinatie) Object.assign(panou, { destLoc: l.destinatie.idloc, destCateg: l.destinatie.idcateg, destStare: l.destinatie.stareMaterial })
   panou.cantitate = l.cantitate
+}
+
+// quick material creation from the entry panel (legacy MaterialAdd)
+const dialogMaterial = ref(false)
+const materialNou = reactive({ denumire: '', um: 'buc', cod_import: '' })
+const salvareMaterial = ref(false)
+function deschideMaterialNou() {
+  const text = typeof panou.materialAles === 'string' ? panou.materialAles as string : ''
+  Object.assign(materialNou, { denumire: text, um: 'buc', cod_import: '' })
+  dialogMaterial.value = true
+}
+async function creeazaMaterial() {
+  salvareMaterial.value = true
+  try {
+    const r = await $fetch<{ material: MaterialRand, avertismente: string[] }>('/api/materiale', {
+      method: 'POST',
+      body: { idgestiune: idCurent.value, denumire: materialNou.denumire, um: materialNou.um, cod_import: materialNou.cod_import, pretpredefinit: '0' },
+    })
+    r.avertismente.forEach(a => notify.warn(a))
+    panou.materialAles = r.material
+    dialogMaterial.value = false
+    notify.ok(`Materialul „${r.material.denumire}” a fost adăugat (cod ${r.material.id}).`)
+  }
+  catch (e) {
+    notify.err(e)
+  }
+  finally {
+    salvareMaterial.value = false
+  }
 }
 
 const valoareLinie = (l: LinieUI) => Dec.toFixed(Dec.mul(Dec.from(l.cantitate), Dec.from(l.pret)), 4)
@@ -418,10 +449,11 @@ const tipuriMaterial = TIPURI_MATERIAL.map(v => ({ v, l: DENUMIRI_TIP_MATERIAL[v
             <label for="s-mat">Material din stoc</label>
             <Select
               ref="refMaterial"
-              v-model="panou.stocAles"
+              v-model="panou.stocCheie"
               input-id="s-mat"
               :options="optiuniStoc"
               option-label="eticheta"
+              option-value="cheie"
               filter
               auto-filter-focus
               :loading="seIncarcaStoc"
@@ -437,9 +469,9 @@ const tipuriMaterial = TIPURI_MATERIAL.map(v => ({ v, l: DENUMIRI_TIP_MATERIAL[v
               </template>
             </Select>
             <small
-              v-if="panou.stocAles"
+              v-if="stocAles"
               class="muted"
-            >Disponibil: {{ fmtNum(optiuniStoc.find(o => o.id_reper === panou.stocAles!.id_reper && o.stare_material === panou.stocAles!.stare_material)?.disponibil ?? '0') }} {{ panou.stocAles.um }} · stare {{ panou.stocAles.stare_material }}</small>
+            >Disponibil: {{ fmtNum(stocAles.disponibil) }} {{ stocAles.um }} · stare {{ stocAles.stare_material }}</small>
           </div>
         </fieldset>
 
@@ -502,13 +534,21 @@ const tipuriMaterial = TIPURI_MATERIAL.map(v => ({ v, l: DENUMIRI_TIP_MATERIAL[v
                 </div>
               </template>
             </AutoComplete>
+            <Button
+              label="Material nou"
+              icon="pi pi-plus"
+              size="small"
+              text
+              class="self-start"
+              @click="deschideMaterialNou"
+            />
           </div>
         </fieldset>
 
         <fieldset class="cant">
           <legend>Cantitate și valoare</legend>
           <div class="field">
-            <label for="cant">Cantitate {{ panou.stocAles?.um ?? (panou.materialAles as MaterialRand | null)?.um ?? '' }}</label>
+            <label for="cant">Cantitate {{ stocAles?.um ?? (panou.materialAles as MaterialRand | null)?.um ?? '' }}</label>
             <InputText
               id="cant"
               ref="refCantitate"
@@ -668,6 +708,63 @@ const tipuriMaterial = TIPURI_MATERIAL.map(v => ({ v, l: DENUMIRI_TIP_MATERIAL[v
         />
       </div>
     </section>
+
+    <Dialog
+      v-model:visible="dialogMaterial"
+      header="Material nou"
+      modal
+      :style="{ width: 'min(460px, 95vw)' }"
+    >
+      <form
+        class="form-grid"
+        @submit.prevent="creeazaMaterial"
+        @keydown.enter.stop
+      >
+        <div class="field field-wide">
+          <label for="mn-den">Denumire</label>
+          <InputText
+            id="mn-den"
+            v-model="materialNou.denumire"
+            maxlength="100"
+            autofocus
+          />
+        </div>
+        <div class="field">
+          <label for="mn-um">U.M.</label>
+          <InputText
+            id="mn-um"
+            v-model="materialNou.um"
+            maxlength="15"
+          />
+        </div>
+        <div class="field">
+          <label for="mn-cod">Cod import</label>
+          <InputText
+            id="mn-cod"
+            v-model="materialNou.cod_import"
+            maxlength="45"
+          />
+        </div>
+        <button
+          type="submit"
+          hidden
+        />
+      </form>
+      <template #footer>
+        <Button
+          label="Renunță"
+          severity="secondary"
+          text
+          @click="dialogMaterial = false"
+        />
+        <Button
+          label="Adaugă materialul"
+          icon="pi pi-check"
+          :loading="salvareMaterial"
+          @click="creeazaMaterial"
+        />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -680,6 +777,7 @@ const tipuriMaterial = TIPURI_MATERIAL.map(v => ({ v, l: DENUMIRI_TIP_MATERIAL[v
 fieldset { border: 1px solid var(--app-border); border-radius: 10px; padding: 0.75rem; margin: 0; display: flex; flex-direction: column; gap: 0.65rem; min-width: 0; }
 legend { font-weight: 600; padding: 0 0.35rem; color: var(--p-primary-color); }
 .opt { display: flex; flex-direction: column; }
+.self-start { align-self: flex-start; }
 .valoare { display: flex; justify-content: space-between; align-items: baseline; font-size: 1.05rem; }
 .panou-actiuni { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .doc-footer { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 0.75rem; }

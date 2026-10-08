@@ -39,10 +39,10 @@ table.r-tabel { width: 100%; border-collapse: collapse; font-variant-numeric: ta
 .r-gol { text-align: center; padding: 8mm; color: var(--muted-ink); border: 0.6pt dashed var(--rule); }
 
 .r-semnaturi { display: grid; grid-template-columns: repeat(auto-fit, minmax(45mm, 1fr)); gap: 6mm; margin-top: 10mm; break-inside: avoid; }
-.r-semnaturi .bloc { text-align: center; }
+.r-semnaturi .bloc { text-align: center; display: flex; flex-direction: column; min-height: 26mm; }
 .r-semnaturi .rol { font-weight: 700; text-transform: uppercase; font-size: 8.5pt; }
 .r-semnaturi .nume { margin-top: 1mm; }
-.r-semnaturi .linie { margin-top: 10mm; border-top: 0.6pt solid var(--rule); padding-top: 1mm; font-size: 7.5pt; color: var(--muted-ink); }
+.r-semnaturi .linie { margin-top: auto; border-top: 0.6pt solid var(--rule); padding-top: 1mm; font-size: 7.5pt; color: var(--muted-ink); }
 .r-declaratie { margin-top: 8mm; font-size: 8.5pt; text-align: justify; break-inside: avoid; }
 
 @media (max-width: 800px) {
