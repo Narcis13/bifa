@@ -1,0 +1,50 @@
+{
+  "name": "bifa2",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck && vue-tsc -p tsconfig.scripts.json",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "db:import": "tsx scripts/db-import.ts",
+    "db:verify": "tsx scripts/db-verify.ts",
+    "verify:reports": "tsx scripts/verify-reports.ts"
+  },
+  "dependencies": {
+    "@primeuix/themes": "^3.0.1",
+    "drizzle-orm": "^0.45.3",
+    "mysql2": "^3.24.5",
+    "nuxt": "4.6.0",
+    "nuxt-auth-utils": "^0.5.30",
+    "primeicons": "^8.0.2",
+    "primelocale": "^2.5.0",
+    "primevue": "5.0.2",
+    "vue": "^3.5.43",
+    "vue-router": "^5.3.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@adonisjs/hash": "^10.1.1",
+    "@nuxt/eslint": "^1.17.0",
+    "@nuxt/test-utils": "^4.3.3",
+    "@primevue/nuxt-module": "5.0.2",
+    "@types/node": "^26.6.4",
+    "dotenv": "^18.0.6",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^10.12.0",
+    "tsx": "^4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "^5.0.3",
+    "vue-tsc": "^3.3.12"
+  }
+}

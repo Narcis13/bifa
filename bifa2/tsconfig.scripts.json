@@ -1,0 +1,11 @@
+{
+  "extends": "./.nuxt/tsconfig.server.json",
+  "compilerOptions": { "noEmit": true },
+  "include": [
+    ".nuxt/types/nitro.d.ts",
+    "scripts/**/*.ts",
+    "tests/**/*.ts",
+    "drizzle.config.ts",
+    "vitest.config.ts"
+  ]
+}
