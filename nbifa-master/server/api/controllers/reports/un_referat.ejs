@@ -1,0 +1,142 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referat de necesitate nr. </title>
+    <%- style %>
+</head>
+<body>
+    <div class="page">
+
+        <div class="container">
+            <div class="antet-stinga-cu-sigla">
+                <img src="/sigla.jpg" width="90" height="100" alt="sigla" >
+                <div style="margin-left: 10px;">
+                        <div>ROMANIA</div>
+                        <div>Ministerul Apararii Nationale</div>
+                        <div><%= config.institutie%></div>
+                        <div>Nr._______ din _________</div>
+                </div>
+            </div>
+
+            <div class="antet-dreapta">
+                <div>Neclasificat</div>
+                <div>Exemplar unic</div>
+
+            </div>
+
+            <div class="subantet-dreapta">
+                <div class="a-centru" style="margin-left: -20px;">APROB</div>
+                <div class="a-stinga" style="margin-left: -30px;">Comandantul <%= config.institutie%></div>
+                <div class="a-stinga" style="margin-left: -30px;"><%= config.grad_comandant%></div>
+                <div class="a-centru"style="margin-top: 10px;"><%= config.nume_comandant%></div>
+
+            </div>
+
+            <div class="titlu">
+                <h4>REFERAT DE NECESITATE</h4>
+            </div>
+
+            <p class="paragraf">
+                Subsemnatul, <%= set_date.nume_sef%> avand functia de Sef <%= set_date.nume_structura%>, in cadrul <%= set_date.nume_structura%> al <%= config.institutie%> va rog a-mi aproba achizitionarea urmatoarelor bunuri si servicii pentru perioada exercitiului bugetar curent:
+            </p>
+
+            <div class="titlu">
+                <div class="stinga">
+                    <div><strong>1.	Descrierea produselor/serviciilor/lucrărilor care urmează să fie achiziționate</strong></div>
+                </div>
+                <table class="minimalistBlack">
+                    <thead>
+                        <tr>
+                            <th class="a-centru" style="width:20px">Nr. crt.</th>
+                            <th class="a-centru" style="width:50px">Poz. PAAP</th>
+                            <th class="a-centru" style="width:180px">Denumire detaliată a produselor/lucrărilor/ serviciilor</th>
+                            <th class="a-centru" style="width:210px">Detalii tehnice</th>
+                            <th class="a-centru" style="width:70px">Cantitate</th>
+                            <th class="a-centru" style="width:90px">Pret unitar fara TVA</th>
+                            <th class="a-centru" style="width:100px">Valoare estimata fara TVA</th>
+
+                        </tr>
+
+                        
+                    </thead>
+                    <tbody>
+                                        
+                        <% set_date.linii.forEach((linie,index) => {%>     
+                            <tr>
+                                <td class="a-centru" style="width:20px"><%= index+1 %></td>
+                                <td class="a-centru" style="width:50px"><%= linie.idpozPAAP %></td>
+                                <td class="a-stinga" style="width:180px"><%= linie.obiectachizitie_text %></td>
+                                <td class="a-stinga" style="width:210px"><%= linie.detalii_tehnice %></td>
+                                <td class="a-centru" style="width:70px"><%= linie.cantitate %></td>
+                                <td class="a-dreapta" style="width:90px"><%= linie.pret %></td>
+                                <td class="a-dreapta" style="width:100px"><%= linie.valoare %></td>
+                            </tr>
+                        <% }) %>
+                        <tr>
+                            <td class="a-dreapta" colspan="6" style="font-weight: bold;">TOTAL VALOARE ESTIMATĂ LEI FĂRĂ T.V.A.</td>
+
+                            <td class="a-dreapta" style="width:100px;font-weight: bold;"><%= set_date.totalftva %></td>
+
+                        </tr>
+                    </tbody>
+                </table>    
+
+            </div>
+
+           
+                <div class="linii-suplimentare">
+                    <div><strong>2.	Justificarea necesității și oportunității achiziției publice: </strong></div>
+                    <div class="indentare"><%= set_date.justificare%></div>
+                </div>
+
+                <div class="linii-suplimentare">
+                    <div><strong>3.	Estimarea și justificarea valorii achizitiei publice: </strong></div>
+                    <div class="indentare">Valoarea estimată pentru achiziționarea serviciilor/bunurilor/lucrărilor este de <%= set_date.totalftva%> lei fără TVA, respectiv <%= set_date.totalcutva%> lei cu TVA, valoarea rezultată în urma unei cercetări a pieței/ pe baza istorică.</div>
+                </div>
+
+                <div class="linii-suplimentare">
+                    <div><strong>4.	Fondurile alocate pentru satisfacerea necesităţii şi poziţia bugetară a acestora:</strong></div>
+                    <div class="indentare">- venituri proprii</div>
+                </div>       
+                
+
+
+                <div class="molecula-stinga">
+                    <div>Data: <%= set_date.data_referat%></div>
+                </div>
+
+                <div class="molecula-dreapta">
+                    <div>Semnatura ________</div>
+                </div>
+
+                <div class="molecula-stinga">
+                    <div>EVALUARE BIROU ACHIZITII SI CONTRACTARI:</div>
+                </div>
+
+                <div class="molecula-dreapta">
+                    <div>Semnatura ________</div>
+                </div>
+
+
+                <div class="linii-suplimentare flexibil">
+                    <div>
+                        <div>EVALUARE SERV. FINANCIAR CONTABIL:</div>
+                        <div>Rezolutie economica: se asigura finantare</div>
+                    </div>
+                    <div>
+                        <div>AVIZAT DIRECTOR FINANCIAR-CONTABIL</div>
+                        <div><%= config.grad_dir_fin_con%></div>
+                        <div class="a-centru"style="margin-top: 10px;"><%= config.nume_dir_fin_con%></div>
+                    </div>
+                </div>   
+
+                <p class="watermark">Listat din aplicatia BIFA AKY</p>
+        </div>
+  
+
+    </div>
+</body>
+</html>
+
+

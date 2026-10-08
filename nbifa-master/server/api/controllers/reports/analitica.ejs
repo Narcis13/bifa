@@ -1,0 +1,99 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanta analitica</title>
+    <%- style %>
+</head>
+<body>
+    <div class="page">
+
+        <div class="container">
+            <div class="antet-stinga">
+                <div>ROMANIA</div>
+                <div>Ministerul Apararii Nationale</div>
+                <div><%= config.institutie%></div>
+                
+            </div>
+
+            <div class="antet-dreapta">
+                <div>NECLASIFICAT</div>
+                <div>Exemplar nr. _</div>
+
+            </div>
+
+            <div class="titlu">
+                <h4>Balanta analitica de gestiune pentru perioada <%= set_date.datainceput%> - <%= set_date.datasfirsit%></h4>
+            </div>
+
+            <div class="principal-stinga">
+               
+                    <span><%= set_date.gestiune%> / <%= set_date.denumiretipmaterial%> / <%= set_date.denumirecategorie%> / <%= set_date.denumireloc%> / <%= set_date.stare%></span>
+                    <table class="minimalistBlack">
+                        <thead>
+                            <tr> 
+                                <th class="a-centru" rowspan="2" style="width:20px">Nr. crt.</th>
+                                <th class="a-centru" rowspan="2" style="width:75px">ID</th>
+                                <th class="a-centru" rowspan="2" style="width:175px">Denumire</th>
+                                <th class="a-centru" rowspan="2" style="width:40px">U.M.</th>
+                                <th class="a-centru"  colspan="4">CANTITATIV</th> 
+                                <th class="a-centru" colspan="4">VALORIC</th>
+                             </tr>
+
+
+                            <tr>
+
+                                <th class="a-centru" style="width:70px">Stoc initial</th>
+                                <th class="a-centru" style="width:70px">Intrari</th>
+                                <th class="a-centru" style="width:90px">Iesiri</th>
+                                <th class="a-centru" style="width:70px">Stoc final</th>
+                                <th class="a-centru" style="width:70px">Sold initial</th>
+                                <th class="a-centru" style="width:90px">Debit</th>
+                                <th class="a-centru" style="width:90px">Credit</th>
+                                <th class="a-centru" style="width:70px">Sold final</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% set_date.linii.forEach((linie,index) => { %>       
+                            <tr>
+                                <td  style="width:20px"><%= index+1 %> </td>
+                                <td  style="width:75px"><%= linie.id_reper %></td>
+                                <td   style="width:175px"><%= linie.denumire %></td>
+                                <td class="a-centru"  style="width:40px"><%= linie.um %></td>
+                                <td class="a-dreapta" style="width:70px"><%= linie.stocinitial %></td>
+                                <td class="a-dreapta" style="width:70px"><%= linie.ti %></td>
+                                <td class="a-dreapta" style="width:90px"><%= linie.te %></td>
+                                <td class="a-dreapta" style="width:70px"><%= linie.stocfinal %></td>
+                                <td class="a-dreapta" style="width:70px"><%= linie.valoarestocinitial %></td>
+                                <td class="a-dreapta" style="width:90px"><%= linie.vi %></td>
+                                <td class="a-dreapta" style="width:90px"><%= linie.ve %></td>
+                                <td class="a-dreapta" style="width:70px"><%= linie.valoarestoc %></td>
+
+                            </tr>
+                            <% }) %>
+                            <tr>
+                                <td class="a-dreapta" colspan="8" style="font-weight: bold;">TOTAL:</td>
+    
+                                <td class="a-dreapta" style="width:70px;font-weight: bold;"><%= set_date.tsi %></td>
+                                <td class="a-dreapta" style="width:90px;font-weight: bold;"><%= set_date.rd %></td>
+                                <td class="a-dreapta" style="width:90px;font-weight: bold;"><%= set_date.rc %></td>
+                                <td class="a-dreapta" style="width:70px;font-weight: bold;"><%= set_date.tsf %></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+            </div>    
+
+            <div class="subsol-stinga">
+                <div>INTOCMIT</div>
+            </div>
+            <div class="subsol-dreapta">
+                <div>VERIFICAT</div>
+            </div>
+
+        </div>
+  
+
+    </div>
+</body>
+</html>

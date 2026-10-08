@@ -1,0 +1,90 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fisa de cont analitica</title>
+    <%- style %>
+</head>
+<body>
+    <div class="page">
+
+        <div class="container">
+            <div class="antet-stinga">
+                <div>ROMANIA</div>
+                <div>Ministerul Apararii Nationale</div>
+                <div><%= config.institutie%></div>
+                
+            </div>
+
+            <div class="antet-dreapta">
+                <div>NECLASIFICAT</div>
+                <div>Exemplar nr. _</div>
+
+            </div>
+
+            <div class="titlu">
+                <h4>Fisa de cont analitica pentru <span class="evidentiat"><%= set_date.denumirematerial%></span> in perioada <%= set_date.datainceput%> - <%= set_date.datasfirsit%></h4>
+            </div>
+
+            <div class="principal-stinga">
+               
+                    <span><%= set_date.gestiune%> / <%= set_date.denumiretipmaterial%> / <%= set_date.denumirecategorie%> / <%= set_date.denumireloc%> / <%= set_date.stare%></span>
+                    <table class="minimalistBlack">
+                        <thead>
+                            <tr> 
+                                <th class="a-centru" rowspan="2" style="width:75px">Data</th>
+                                <th class="a-centru" rowspan="2" style="width:175px">Explicatii</th>
+                                <th class="a-centru" rowspan="2" style="width:40px">U.M.</th>
+                                <th class="a-centru"  colspan="3">CANTITATIV</th> 
+                                <th class="a-centru" colspan="3">VALORIC</th>
+                             </tr>
+
+
+                            <tr>
+
+                                
+                                <th class="a-centru" style="width:70px">Intrari</th>
+                                <th class="a-centru" style="width:90px">Iesiri</th>
+                                <th class="a-centru" style="width:70px">Stoc </th>
+
+                                <th class="a-centru" style="width:90px">Debit</th>
+                                <th class="a-centru" style="width:90px">Credit</th>
+                                <th class="a-centru" style="width:70px">Sold </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% set_date.linii.forEach((linie,index) => { %>       
+                                <tr>
+                                    
+                                    <td  style="width:75px"><%= linie.data %></td>
+                                    <td   style="width:175px"><strong><%= linie.explicatii %></strong></td>
+                                    <td class="a-centru"  style="width:40px"><%= linie.um %></td>
+                                 
+                                    <td class="a-dreapta" style="width:70px"><%= linie.ci %></td>
+                                    <td class="a-dreapta" style="width:90px"><%= linie.ce %></td>
+                                    <td class="a-dreapta" style="width:70px"><strong><%= linie.cs %></strong></td>
+                     
+                                    <td class="a-dreapta" style="width:90px"><%= linie.vi %></td>
+                                    <td class="a-dreapta" style="width:90px"><%= linie.ve %></td>
+                                    <td class="a-dreapta" style="width:70px"><strong><%= linie.vs %></strong></td>
+    
+                                </tr>
+                                <% }) %>
+                        </tbody>
+                    </table>
+
+            </div>    
+
+            <div class="subsol-stinga">
+                <div>INTOCMIT</div>
+            </div>
+            <div class="subsol-dreapta">
+                <div>VERIFICAT</div>
+            </div>
+
+        </div>
+  
+
+    </div>
+</body>
+</html>

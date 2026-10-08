@@ -1,0 +1,80 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documente in interval</title>
+    <%- style %>
+</head>
+<body>
+    <div class="page">
+
+        <div class="container">
+            <div class="antet-stinga">
+                <div>ROMANIA</div>
+                <div>Ministerul Apararii Nationale</div>
+                <div><%= config.institutie%></div>
+                <div>Gestiunea: <%=set_date.numegest %></div>
+            </div>
+
+            <div class="antet-dreapta">
+                <div>NECLASIFICAT</div>
+                <div>Exemplar nr. _</div>
+
+            </div>
+
+            <div class="titlu">
+                <h4>Lista documente justificative in perioada: <%=set_date.start %> - <%=set_date.stop %></h4>
+            </div>
+
+            <div class="titlu">
+                <table class="minimalistBlack">
+                    <thead>
+                        <tr>
+                            <th>Nr. crt.</th>
+                            <th class="coloane-mari">Tip doc.</th>
+                            <th>Numar doc.</th>
+                            <th>Data doc.</th>
+                            <th class="coloane-mari a-centru">DEBIT</th>
+                            <th class="coloane-mari a-centru">CREDIT</th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4">TOTAL:</td>
+
+                            <td class="coloane-mari a-dreapta"><%= set_date.totaldebit %></td>
+                            <td class="coloane-mari a-dreapta"><%= set_date.totalcredit %></td>
+                        </tr>
+                    </tfoot>
+                    <tbody>
+                        <% set_date.docs.forEach((doc,index) => { %>                      
+                 
+                            <tr>
+                                <td class="a-centru"><%= index+1 %> </td>
+                                <td class="coloane-mari"><%= doc.tipoperatiune %></td>
+                                <td><%= doc.nrdoc %></td>
+                                <td><%= doc.data %></td>
+                                <td class="coloane-mari a-dreapta"><%= doc.debit %></td>
+                                <td class="coloane-mari a-dreapta"><%= doc.credit %></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                    </table>
+
+            </div>
+
+            <div class="subsol-stinga">
+                <div>INTOCMIT</div>
+            </div>
+            <div class="subsol-dreapta">
+                <div>VERIFICAT</div>
+            </div>
+
+        </div>
+  
+
+    </div>
+</body>
+</html>
+
+

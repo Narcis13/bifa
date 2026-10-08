@@ -1,0 +1,113 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista inventariere</title>
+    <%- style %>
+</head>
+<body>
+    <div class="page">
+
+        <div class="container">
+            <div class="antet-stinga">
+                <div>ROMANIA</div>
+                <div>Ministerul Apararii Nationale</div>
+                <div><%= config.institutie%></div>
+                
+            </div>
+
+            <div class="antet-dreapta">
+                <div>NECLASIFICAT</div>
+                <div>Exemplar nr. _</div>
+
+            </div>
+
+            <div class="titlu">
+                <h4>LISTA de INVENTARIERE pentru perioada <%= set_date.datainceput%> - <%= set_date.datasfirsit%></h4>
+            </div>
+
+            <div class="principal-stinga">
+               
+                    <span><%= set_date.gestiune%> / <%= set_date.denumiretipmaterial%> / <%= set_date.denumirecategorie%> / <%= set_date.denumireloc%> / <%= set_date.stare%></span>
+                    <table class="minimalistBlack">
+                        <thead>
+                            <tr> 
+                                <th class="a-centru" rowspan="2" style="width:20px">Nr. crt.</th>
+                                <th class="a-centru" rowspan="2" style="width:75px">ID</th>
+                                <th class="a-centru" rowspan="2" style="width:175px">Denumire</th>
+                                <th class="a-centru" rowspan="2" style="width:40px">U.M.</th>
+                                <th class="a-centru"  colspan="4">CANTITATI</th> 
+                                <th class="a-centru" colspan="4">VALOARE CONTABILA</th>
+                             </tr>
+
+
+                            <tr>
+
+                                <th class="a-centru" style="width:70px">Stoc faptic</th>
+                                <th class="a-centru" style="width:70px">Stoc scriptic</th>
+                                <th class="a-centru" style="width:90px">Diferente faptic</th>
+                                <th class="a-centru" style="width:70px">Diferente scriptic</th>
+                                <th class="a-centru" style="width:70px">Pret unitar</th>
+                                <th class="a-centru" style="width:90px">Valoare</th>
+                                <th class="a-centru" style="width:90px">Dif. plus</th>
+                                <th class="a-centru" style="width:70px">Dif. minus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% set_date.linii.forEach((linie,index) => { %>       
+                            <tr>
+                                <td  style="width:20px"><%= index+1 %> </td>
+                                <td  style="width:75px"><%= linie.id_reper %></td>
+                                <td   style="width:175px"><%= linie.denumire %></td>
+                                <td class="a-centru"  style="width:40px"><%= linie.um %></td>
+                                <td class="a-dreapta" style="width:70px"></td>
+                                <td class="a-dreapta" style="width:70px"><%= linie.stocfinal %></td>
+                                <td class="a-dreapta" style="width:90px"></td>
+                                <td class="a-dreapta" style="width:70px"></td>
+                                <td class="a-dreapta" style="width:70px"><%= linie.pret %></td>
+                                <td class="a-dreapta" style="width:90px"><%= linie.valoarestoc %></td>
+                                <td class="a-dreapta" style="width:90px"></td>
+                                <td class="a-dreapta" style="width:70px"></td>
+
+                            </tr>
+                            <% }) %>
+                            <tr>
+                                <td class="a-dreapta" colspan="8" style="font-weight: bold;">TOTAL:</td>
+    
+                                <td class="a-dreapta" style="width:70px;font-weight: bold;"></td>
+                                <td class="a-dreapta" style="width:90px;font-weight: bold;"><%= set_date.tsf %></td>
+                                <td class="a-dreapta" style="width:90px;font-weight: bold;"></td>
+                                <td class="a-dreapta" style="width:70px;font-weight: bold;"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+            </div>    
+
+            <div class="subsol-stinga">
+                <div>Contabilitate</div>
+            </div>
+
+            <div class="subsol-stinga">
+                <div>Comisia inventariere</div>
+                <div>Presedinte: <%= set_date.presedinte%></div>
+                <div>Membrii:</div>
+                <div><%= set_date.membru1%></div>
+                <div><%= set_date.membru2%></div>
+            </div>
+            <div class="subsol-dreapta">
+                <div>Gestionar</div>
+            </div>
+            <div class="titlu">
+                <h5>BUNURILE MATERIALE ARATATE IN PREZENTA LISTA DE INVENTARIERE AU FOST CONSTATATE CA EXISTENTE DE CATRE COMISIE IN PREZENTA MEA. AM / NU AM OBIECTII IN LEGATURA CU CELE CONSTATATE SI CONFIRM CA BUNURILE MATERIALE SUNT IN PASTRAREA MEA.</h5>
+                <br>
+                <h6> GESTIONAR _____________________________ semnatura ______________</h6>
+
+            </div>
+
+        </div>
+  
+
+    </div>
+</body>
+</html>

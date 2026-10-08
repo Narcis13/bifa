@@ -1,0 +1,90 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document justificativ nr. <%= set_date.nrdoc%> din <%= set_date.datadoc%></title>
+    <%- style %>
+</head>
+<body>
+    <div class="page">
+
+        <div class="container">
+            <div class="antet-stinga">
+                <div>ROMANIA</div>
+                <div>Ministerul Apararii Nationale</div>
+                <div><%= config.institutie%></div>
+                
+            </div>
+
+            <div class="antet-dreapta">
+                <div>NECLASIFICAT</div>
+                <div>Exemplar nr. _</div>
+
+            </div>
+
+            <div class="titlu">
+                <h4><%= set_date.tipoperatiune%> nr. <%= set_date.nrdoc%> din <%= set_date.datadoc%></h4>
+            </div>
+
+            <div class="titlu">
+                <div class="stinga">
+                    <div>Gestiunea: <%= set_date.gestiune%></div>
+                    <div>Loc dispunere: <%= set_date.loc%></div>
+                    <div>Stare materiale: <%= set_date.stare%></div>
+                </div>
+                <table class="minimalistBlack">
+                    <thead>
+                        <tr>
+                            <th class="a-centru" style="width:20px">Nr. crt.</th>
+                            <th class="a-centru" style="width:150px">Categoria</th>
+                            <th class="a-centru" style="width:150px">Denumire</th>
+                            <th class="a-centru">U.M.</th>
+                            <th class="a-centru" style="width:70px">Cantit. debit</th>
+                            <th class="a-centru" style="width:70px">Cantit. credit</th>
+                            <th class="a-centru" style="width:90px">Pret</th>
+                            <th class="a-centru" style="width:90px">DEBIT</th>
+                            <th class="a-centru" style="width:90px">CREDIT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% set_date.linii.forEach((linie,index) => { %>                      
+                 
+                            <tr>
+                                <td class="a-centru" style="width:20px"><%= index+1 %></td>
+                                <td  style="width:150px"><%= linie.categorie+' '+linie.cod %></td>
+                                <td  style="width:150px"><%= linie.material %></td>
+                                <td class="a-centru"><%= linie.um %></td>
+                                <td class="a-dreapta" style="width:70px"><%= linie.cantitate_debit %></td>
+                                <td class="a-dreapta" style="width:70px"><%= linie.cantitate_credit %></td>
+                                <td class="a-dreapta" style="width:90px"><%= linie.pret %></td>
+                                <td class="a-dreapta" style="width:90px"><%= linie.debit %></td>
+                                <td class="a-dreapta" style="width:90px"><%= linie.credit %></td>
+                            </tr>
+                        <% }) %>
+                        <tr>
+                            <td class="a-dreapta" colspan="7" style="font-weight: bold;">TOTAL:</td>
+
+                            <td class="a-dreapta" style="width:90px;font-weight: bold;"><%= set_date.totaldebit %></td>
+                            <td class="a-dreapta" style="width:90px;font-weight: bold;"><%= set_date.totalcredit %></td>
+                        </tr>
+                    </tbody>
+                </table>    
+
+            </div>
+
+
+            <div class="subsol-stinga">
+                <div>INTOCMIT</div>
+            </div>
+            <div class="subsol-dreapta">
+                <div>VERIFICAT</div>
+            </div>
+
+        </div>
+  
+
+    </div>
+</body>
+</html>
+
+

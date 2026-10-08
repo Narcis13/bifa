@@ -1,0 +1,48 @@
+{
+  "name": "bifagest",
+  "version": "0.0.1",
+  "description": "A Quasar Framework app",
+  "productName": "BIFA Gestiune",
+  "cordovaId": "org.cordova.quasar.app",
+  "author": "Narcis Brindusescu <Narcis75@gmail.com>",
+  "private": true,
+  "scripts": {
+    "test": "echo \"No test specified\" && exit 0",
+    "start": "nodemon -e js,ejs,json,css ./server/server.js"
+  },
+  "dependencies": {
+    "@quasar/cli": "^1.2.1",
+    "@quasar/extras": "^1.16.12",
+    "axios": "^1.6.1",
+    "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
+    "ejs": "^3.0.1",
+    "express": "^4.16.4",
+    "file-saver": "^2.0.2",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.0.1",
+    "moment": "^2.24.0",
+    "mysql2": "^1.6.5",
+    "puppeteer": "^2.1.1",
+    "quasar": "^1.22.10"
+  },
+  "devDependencies": {
+    "@quasar/app": "^2.4.4",
+    "morgan": "^1.9.1",
+    "nodemon": "^3.0.1",
+    "strip-ansi": "=3.0.1"
+  },
+  "engines": {
+    "node": ">= 8.9.0",
+    "npm": ">= 5.6.0",
+    "yarn": ">= 1.6.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 10"
+  ],
+  "resolutions": {
+    "ajv": "6.8.1"
+  }
+}

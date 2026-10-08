@@ -1,0 +1,79 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista angajamente</title>
+    <%- style %>
+</head>
+<body>
+    <div class="page">
+
+        <div class="container">
+            <div class="antet-stinga">
+                <div>ROMANIA</div>
+                <div>Ministerul Apararii Nationale</div>
+                <div><%= config.institutie%></div>
+                
+            </div>
+
+            <div class="antet-dreapta">
+                <div>NECLASIFICAT</div>
+                <div>Exemplar nr. _</div>
+
+            </div>
+
+            <div class="titlu">
+                <h4>Lista angajamente bugetare pentru perioada <%= set_date.datainceput%> - <%= set_date.datasfirsit%></h4>
+            </div>
+
+            <div class="principal-stinga">
+               
+                
+                <table class="minimalistBlack">
+                    <thead>
+
+
+
+                        <tr>
+
+                            <th class="a-centru" style="width:90px">Nr. ang.</th>
+                            <th class="a-centru" style="width:90px">Data</th>
+                            <th class="a-centru" style="width:270px">Descriere</th>
+                            <th class="a-centru" style="width:120px">Suma</th>
+                            <th class="a-centru" style="width:240px">Sursa</th>
+                            <th class="a-centru" style="width:100px">Art. bug.</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% set_date.linii.forEach((linie,index) => { %>       
+                        <tr>
+
+                            <td class="a-dreapta" style="width:90px"><%= linie.nrdoc %></td>
+                            <td class="a-dreapta" style="width:90px"><%= linie.dataang %></td>
+                            <td class="a-stinga <%= linie.clasa %>" style="width:270px"><%= linie.detalii %></td>
+                            <td class="a-dreapta <%= linie.clasa %>" style="width:120px"><%= linie.suma %></td>
+                            <td class="a-dreapta" style="width:240px"><%= linie.numecap %></td>
+                            <td class="a-dreapta" style="width:100px"><%= linie.artbug %></td>
+
+                        </tr>
+                        <% }) %>
+
+                    </tbody>
+                </table>
+
+        </div> 
+
+            <div class="subsol-stinga">
+                <div>INTOCMIT</div>
+            </div>
+            <div class="subsol-dreapta">
+                <div>VERIFICAT</div>
+            </div>
+
+        </div>
+  
+
+    </div>
+</body>
+</html>

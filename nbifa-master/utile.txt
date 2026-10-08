@@ -1,0 +1,10 @@
+                         
+axios.post(process.env.host+'rn/detaliinoi',{
+        tranzactii:that.liniiRN,
+        idAntet:res.data.id
+        },{headers:{"Authorization" : `Bearer ${token}`}}).then(res =>{
+
+
+        }).catch(err=>{
+                                    
+        })
