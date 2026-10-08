@@ -21,6 +21,7 @@ export default defineNuxtConfig({
     },
   },
   compatibilityDate: '2026-10-01',
+  nitro: { esbuild: { options: { target: 'es2022' } } },
   typescript: { strict: true },
   eslint: { config: { stylistic: true } },
   primevue: {

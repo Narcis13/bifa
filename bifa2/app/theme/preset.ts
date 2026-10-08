@@ -19,9 +19,8 @@ const BifaPreset = definePreset(Aura, {
   },
 })
 
+/** Imported by @primevue/nuxt-module (`primevue.importTheme`) as the theme config. */
 export default {
-  theme: {
-    preset: BifaPreset,
-    options: { darkModeSelector: '.app-dark', cssLayer: false },
-  },
+  preset: BifaPreset,
+  options: { darkModeSelector: '.app-dark', cssLayer: false },
 }

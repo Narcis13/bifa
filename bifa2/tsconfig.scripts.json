@@ -3,6 +3,7 @@
   "compilerOptions": { "noEmit": true },
   "include": [
     ".nuxt/types/nitro.d.ts",
+    "shared/**/*.d.ts",
     "scripts/**/*.ts",
     "tests/**/*.ts",
     "drizzle.config.ts",
