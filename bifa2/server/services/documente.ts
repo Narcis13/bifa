@@ -2,7 +2,8 @@
  * Documents (operatiuni + tranzactii). A document and all its lines are written in one
  * transaction; editing keeps the document id, soft-deactivates the previous lines and writes the
  * new ones, so nothing is ever hard-deleted. Exits and transfers take stock at average price and
- * are checked against the stock available on the document date, under row locks.
+ * are checked against the stock available on the document date, under row locks, and no
+ * operation (backdated exit, edit, invalidation) may push a stock group below zero on a later date.
  */
 import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import { categorii, locuri, materiale, operatiuni, tipuridocumente, tranzactii } from '../database/schema'
@@ -10,7 +11,8 @@ import type { NewTranzactie } from '../database/schema'
 import type { DbOrTx } from '../utils/db'
 import { Dec } from '../../shared/utils/decimal'
 import type { DocumentInput, LinieDocumentInput } from '../../shared/schemas/documente'
-import { rows, stocGrupaPentruIesire } from './stoc'
+import { cheieGrupa, rows, soldMinimDupa, stocGrupaPentruIesire } from './stoc'
+import type { GrupaStoc } from './stoc'
 
 /** Business-rule failure with an HTTP status and a Romanian message (mapped by the API layer). */
 export class EroareDocument extends Error {
@@ -31,12 +33,27 @@ export async function salveazaDocument(db: DbOrTx, input: DocumentInput, idExist
     const [tip] = await tx.select().from(tipuridocumente).where(eq(tipuridocumente.id, input.idtipoperatiuni))
     if (!tip) throw new EroareDocument(422, 'Tipul de document nu există.')
 
+    // Stock groups this operation can lower: the sources of the new lines and, when editing, the
+    // groups the previous lines had put stock into. Locked in a fixed order (no deadlocks).
+    const grupe = new Map<string, GrupaStoc>()
+    const adauga = (g: GrupaStoc) => grupe.set(cheieGrupa(g), g)
+    for (const l of input.linii) {
+      if (l.sursa) adauga({ idgestiune: input.idgestiune, idloc: l.sursa.idloc, idcateg: l.sursa.idcateg, idreper: l.idreper, stareMaterial: l.sursa.stareMaterial, tipMaterial: input.tipMaterial })
+    }
+    let dela = input.data
+
     let idDoc: number
     if (idExistent !== undefined) {
       const [doc] = await tx.select().from(operatiuni).where(eq(operatiuni.id, idExistent)).for('update')
       if (!doc) throw new EroareDocument(404, 'Documentul nu există.')
       if (doc.idgestiune !== input.idgestiune) throw new EroareDocument(409, 'Documentul aparține altei gestiuni.')
       if (doc.stare !== 'activ') throw new EroareDocument(409, 'Documentul este invalidat și nu mai poate fi modificat.')
+      for (const g of await grupeIntrari(tx, idExistent)) adauga(g)
+      if (doc.data < dela) dela = doc.data
+    }
+    const inainte = await solduriMinime(tx, grupe, dela)
+
+    if (idExistent !== undefined) {
       await tx.update(operatiuni)
         .set({ idtipoperatiuni: input.idtipoperatiuni, data: input.data, nrdoc: input.nrdoc })
         .where(eq(operatiuni.id, idExistent))
@@ -56,6 +73,7 @@ export async function salveazaDocument(db: DbOrTx, input: DocumentInput, idExist
 
     const linii = await construiesteLinii(tx, input, tip.tip, idDoc, idExistent)
     await tx.insert(tranzactii).values(linii)
+    await verificaStocNegativ(tx, grupe, dela, inainte)
 
     return { id: idDoc, avertismente: await avertismenteDocument(tx, input, idDoc) }
   })
@@ -74,9 +92,11 @@ async function construiesteLinii(tx: DbOrTx, input: DocumentInput, tip: Tip, idA
   const pozitii = input.linii.flatMap(l => [l.sursa, l.destinatie]).filter(p => p !== undefined)
   const idsCateg = [...new Set(pozitii.map(p => p.idcateg))]
   const idsLoc = [...new Set(pozitii.map(p => p.idloc))]
-  const categs = idsCateg.length ? await tx.select({ id: categorii.id, idgestiune: categorii.idgestiune }).from(categorii).where(inArray(categorii.id, idsCateg)) : []
+  const categs = idsCateg.length ? await tx.select({ id: categorii.id, idgestiune: categorii.idgestiune, tipmaterial: categorii.tipmaterial }).from(categorii).where(inArray(categorii.id, idsCateg)) : []
   for (const id of idsCateg) {
-    if (categs.find(c => c.id === id)?.idgestiune !== input.idgestiune) throw new EroareDocument(422, `Categoria cu codul ${id} nu aparține gestiunii.`)
+    const c = categs.find(x => x.id === id)
+    if (c?.idgestiune !== input.idgestiune) throw new EroareDocument(422, `Categoria cu codul ${id} nu aparține gestiunii.`)
+    if (c.tipmaterial !== input.tipMaterial) throw new EroareDocument(422, `Categoria cu codul ${id} este pentru alt tip de material (${c.tipmaterial}).`)
   }
   const locs = idsLoc.length ? await tx.select({ id: locuri.id }).from(locuri).where(inArray(locuri.id, idsLoc)) : []
   for (const id of idsLoc) {
@@ -102,6 +122,7 @@ async function construiesteLinii(tx: DbOrTx, input: DocumentInput, tip: Tip, idA
       if (!l.destinatie) throw new EroareDocument(422, `${nr}: alegeți locul, categoria și starea pentru intrare.`)
       if (l.pret === undefined) throw new EroareDocument(422, `${nr}: prețul unitar este obligatoriu la intrare.`)
       const valoare = Dec.toFixed(Dec.mul(cantitate, Dec.from(l.pret)), 4)
+      if (Dec.from(valoare) >= Dec.from('10000000000')) throw new EroareDocument(422, `${nr}: valoarea depășește 9.999.999.999,9999 lei.`)
       out.push({ ...comun(l), ...pozitie(l.destinatie), cantitate_debit: l.cantitate, pret: l.pret, debit: valoare })
       continue
     }
@@ -162,8 +183,46 @@ async function avertismenteDocument(tx: DbOrTx, input: DocumentInput, idDoc: num
 
 /** Soft delete: the document and its lines stay in the database, excluded from stock and reports. */
 export async function invalideazaDocument(db: DbOrTx, id: number) {
-  const r = await db.update(operatiuni).set({ stare: 'inactiv' }).where(and(eq(operatiuni.id, id), eq(operatiuni.stare, 'activ')))
-  return (r[0] as { affectedRows: number }).affectedRows > 0
+  return db.transaction(async (tx) => {
+    const [doc] = await tx.select().from(operatiuni).where(eq(operatiuni.id, id)).for('update')
+    if (!doc || doc.stare !== 'activ') return false
+    const grupe = new Map((await grupeIntrari(tx, id)).map(g => [cheieGrupa(g), g]))
+    const inainte = await solduriMinime(tx, grupe, doc.data)
+    await tx.update(operatiuni).set({ stare: 'inactiv' }).where(eq(operatiuni.id, id))
+    await verificaStocNegativ(tx, grupe, doc.data, inainte)
+    return true
+  })
+}
+
+/** Groups into which a document's active lines put stock (removing them can lower later stock). */
+async function grupeIntrari(tx: DbOrTx, idAntet: number): Promise<GrupaStoc[]> {
+  const r = await tx.selectDistinct({
+    idgestiune: tranzactii.id_gestiune,
+    idloc: tranzactii.id_locdispunere,
+    idcateg: tranzactii.id_categ,
+    idreper: tranzactii.id_reper,
+    stareMaterial: tranzactii.stare_material,
+    tipMaterial: tranzactii.tip_material,
+  }).from(tranzactii).where(and(eq(tranzactii.idAntet, idAntet), eq(tranzactii.stare, 'activ'), sql`${tranzactii.cantitate_debit} > 0`))
+  return r
+}
+
+async function solduriMinime(tx: DbOrTx, grupe: Map<string, GrupaStoc>, dela: string) {
+  const out = new Map<string, bigint | null>()
+  for (const k of [...grupe.keys()].sort()) out.set(k, await soldMinimDupa(tx, grupe.get(k)!, dela))
+  return out
+}
+
+/** Rejects the operation if it makes a group's stock negative (or more negative) on any date from `dela`. */
+async function verificaStocNegativ(tx: DbOrTx, grupe: Map<string, GrupaStoc>, dela: string, inainte: Map<string, bigint | null>) {
+  for (const [k, g] of grupe) {
+    const dupa = await soldMinimDupa(tx, g, dela)
+    const inaintea = inainte.get(k) ?? null
+    if (dupa !== null && dupa < 0n && (inaintea === null || dupa < inaintea)) {
+      const [m] = await tx.select({ denumire: materiale.denumire, um: materiale.um }).from(materiale).where(eq(materiale.id, g.idreper))
+      throw new EroareDocument(422, `Operațiunea ar face negativ stocul pentru „${m?.denumire ?? g.idreper}” (${g.stareMaterial}) la o dată ulterioară: minim ${Dec.toFixed(dupa, 2)} ${m?.um ?? ''}. Verificați ieșirile de după ${dela}.`)
+    }
+  }
 }
 
 export async function antetDocument(db: DbOrTx, id: number) {

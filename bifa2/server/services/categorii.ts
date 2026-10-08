@@ -1,6 +1,6 @@
 import { and, asc, eq, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/mysql-core'
-import { categorii, conturi, gestiuni } from '../database/schema'
+import { categorii, conturi, gestiuni, tranzactii } from '../database/schema'
 import type { DbOrTx } from '../utils/db'
 import type { CategorieModificata, CategorieNoua, CategoriiQuery } from '../../shared/schemas/categorii'
 import { ok, refuz } from './utilizatori'
@@ -81,6 +81,12 @@ export async function modificaCategorie(db: DbOrTx, id: number, input: Categorie
   if (!curenta) return refuz(404, 'Categoria nu există.')
   if (curenta.lipsa_import && input.stare === 'inactiv')
     return refuz(409, 'Categoria a fost creată la import și nu poate fi dezactivată.')
+  const mutata = (input.idgestiune !== undefined && input.idgestiune !== curenta.idgestiune)
+    || (input.tipmaterial !== undefined && input.tipmaterial !== curenta.tipmaterial)
+  if (mutata) {
+    const [folosita] = await db.select({ id: tranzactii.id }).from(tranzactii).where(eq(tranzactii.id_categ, id)).limit(1)
+    if (folosita) return refuz(409, 'Categoria are deja mișcări; gestiunea și tipul de material nu mai pot fi schimbate.')
+  }
   const eroare = await valideaza(db, input, { denumire: input.denumire ?? curenta.denumire, idgestiune: input.idgestiune ?? curenta.idgestiune }, id)
   if (eroare) return eroare
   if (Object.values(input).some(v => v !== undefined))

@@ -130,3 +130,38 @@ export async function stocGrupaPentruIesire(tx: DbOrTx, k: {
   }
   return { cantitate, valoare }
 }
+
+export interface GrupaStoc {
+  idgestiune: number
+  idloc: number
+  idcateg: number
+  idreper: number
+  stareMaterial: StareMaterial
+  tipMaterial: TipMaterial
+}
+
+export const cheieGrupa = (g: GrupaStoc) => [g.idgestiune, g.idloc, g.idcateg, g.idreper, g.stareMaterial, g.tipMaterial].join('|')
+
+/**
+ * Lowest running stock quantity of a group on any date from `dela` on (null when the group has
+ * no movement from that date). A locking read: it sees the latest committed rows and locks them. Used to make sure an operation does not
+ * push the stock below zero on a later date (backdated exits, invalidated or edited entries).
+ */
+export async function soldMinimDupa(tx: DbOrTx, g: GrupaStoc, dela: string): Promise<bigint | null> {
+  const zile = await rows<{ data: string, cantitate: string }>(tx, sql`
+    SELECT op.data, SUM(t.cantitate_debit - t.cantitate_credit) AS cantitate
+    FROM tranzactii t JOIN operatiuni op ON op.id = t.idAntet
+    WHERE t.id_gestiune = ${g.idgestiune} AND t.id_locdispunere = ${g.idloc} AND t.id_categ = ${g.idcateg}
+      AND t.id_reper = ${g.idreper} AND t.stare_material = ${g.stareMaterial} AND t.tip_material = ${g.tipMaterial}
+      AND t.stare = 'activ' AND op.stare = 'activ'
+    GROUP BY op.data
+    ORDER BY op.data
+    FOR UPDATE`)
+  let sold = 0n
+  let minim: bigint | null = null
+  for (const z of zile) {
+    sold += Dec.from(z.cantitate)
+    if (z.data >= dela && (minim === null || sold < minim)) minim = sold
+  }
+  return minim
+}

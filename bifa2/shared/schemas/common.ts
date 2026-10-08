@@ -15,7 +15,12 @@ export const id = z.coerce.number().int().positive({ message: 'Identificator inv
 export const idParam = z.object({ id })
 
 /** ISO date (YYYY-MM-DD). */
-export const dataIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Dată invalidă (format AAAA-LL-ZZ)')
+export const dataIso = z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Dată invalidă (format AAAA-LL-ZZ)')
+  .refine((v) => {
+    const d = new Date(`${v}T00:00:00Z`)
+    return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(v)
+  }, 'Dată inexistentă în calendar')
 
 /** Positive decimal string with at most `scale` decimals, e.g. quantities (2) and prices (4). */
 export const zecimal = (scale: number, label: string) =>

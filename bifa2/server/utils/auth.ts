@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { gasesteUtilizatorDupaId } from '../services/auth'
-import { gestiuniAccesibile } from '../services/gestiuni'
+import { gasesteGestiune, gestiuniAccesibile } from '../services/gestiuni'
 
 /**
  * The logged-in user (401 when there is no session). Role and status are re-read from the
@@ -25,10 +25,15 @@ export async function requireAdmin(event: H3Event) {
   return user
 }
 
-/** 403 unless the user may work in this gestiune (admins: all; others: the ones assigned to them). */
+/**
+ * 403 unless the user may work in this gestiune: admins in any existing gestiune (inactive ones
+ * included, e.g. for reports), operators only in the active gestiuni assigned to them.
+ */
 export async function requireGestiune(event: H3Event, idgestiune: number) {
   const user = await requireUser(event)
-  const allowed = await gestiuniAccesibile(useDb(), user)
-  if (!allowed.some(g => g.id === idgestiune)) apiError(403, 'Nu aveți acces la această gestiune.')
+  const allowed = user.rol === 'admin'
+    ? !!(await gasesteGestiune(useDb(), idgestiune))
+    : (await gestiuniAccesibile(useDb(), user)).some(g => g.id === idgestiune)
+  if (!allowed) apiError(403, 'Nu aveți acces la această gestiune.')
   return user
 }

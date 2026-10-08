@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const { id } = validParams(event, idParam)
   const doc = found(await antetDocument(useDb(), id), 'Documentul')
   await requireGestiune(event, doc.idgestiune)
-  if (!(await invalideazaDocument(useDb(), id))) apiError(409, 'Documentul este deja invalidat.')
+  if (!(await regula(() => invalideazaDocument(useDb(), id)))) apiError(409, 'Documentul este deja invalidat.')
   setResponseStatus(event, 204)
   return null
 })

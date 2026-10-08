@@ -48,8 +48,8 @@ export function useRaport() {
   const filtre = computed(() => [
     { eticheta: 'Gestiunea', valoare: gestiune.value?.denumire ?? '' },
     { eticheta: 'Tip material', valoare: DENUMIRI_TIP_MATERIAL[q.value.tipMaterial] },
-    { eticheta: 'Categoria', valoare: q.value.idcateg ? (categorii.value.find(c => c.id === Number(q.value.idcateg))?.denumire ?? q.value.idcateg) : 'toate' },
-    { eticheta: 'Locul', valoare: q.value.idloc ? (locuri.value.find(l => l.id === Number(q.value.idloc))?.denumire ?? q.value.idloc) : 'toate' },
+    { eticheta: 'Categoria', valoare: q.value.idcateg ? ((categorii.value ?? []).find(c => c.id === Number(q.value.idcateg))?.denumire ?? q.value.idcateg) : 'toate' },
+    { eticheta: 'Locul', valoare: q.value.idloc ? ((locuri.value ?? []).find(l => l.id === Number(q.value.idloc))?.denumire ?? q.value.idloc) : 'toate' },
     { eticheta: 'Starea', valoare: q.value.stareMaterial ?? 'toate' },
   ])
   const perioada = computed(() => `${fmtData(q.value.datainceput)} – ${fmtData(q.value.datasfarsit)}`)

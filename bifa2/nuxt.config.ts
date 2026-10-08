@@ -12,6 +12,8 @@ export default defineNuxtConfig({
   },
   css: ['primeicons/primeicons.css', '~/assets/css/main.css', '~/assets/css/print.css'],
   runtimeConfig: {
+    // sealed session cookie (nuxt-auth-utils): expires after 12 hours
+    session: { maxAge: 60 * 60 * 12 },
     mysql: {
       host: '127.0.0.1',
       port: 3306,

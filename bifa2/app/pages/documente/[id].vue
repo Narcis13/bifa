@@ -12,13 +12,19 @@ interface LinieUI {
   pret: string
   sursa?: Pozitie
   destinatie?: Pozitie
+  /** Stored value of a saved line (an exit that emptied the stock may differ from cantitate × preț). */
+  valoare?: string
 }
 interface StocRand { id_reper: number, denumire: string, um: string, cod_import: string | null, stare_material: StareMaterial, stoc: string, valoarestoc: string, pretmediu: string }
 interface MaterialRand { id: number, denumire: string, um: string, cod_import: string | null, pretpredefinit: string }
 
 const route = useRoute()
 const notify = useNotify()
-const { idCurent, gestiuneCurenta } = useSesiune()
+const { idCurent, gestiuni } = useSesiune()
+/** Gestiune of the edited document (an existing document stays in its own gestiune). */
+const idGestiuneDoc = ref<number | null>(null)
+const idGestiune = computed(() => idGestiuneDoc.value ?? idCurent.value)
+const numeGestiune = computed(() => gestiuni.value.find(g => g.id === idGestiune.value)?.denumire ?? `gestiunea #${idGestiune.value}`)
 const idDoc = computed(() => (route.params.id === 'nou' ? null : Number(route.params.id)))
 useHead({ title: computed(() => (idDoc.value ? `Document ${idDoc.value}` : 'Document nou') + ' – BIFA') })
 
@@ -48,19 +54,29 @@ const dataDoc = computed<Date>({
 const tipuriOptiuni = computed(() => tipuri.value.map(t => ({ ...t, eticheta: `${t.denumire} (${t.denumire_scurta})` })))
 const blocat = computed(() => stareDoc.value !== 'activ' || !!needitabil.value)
 
-const { data: categorii } = await useFetch<{ id: number, denumire: string }[]>('/api/categorii', {
-  query: computed(() => ({ idgestiune: idCurent.value, tipmaterial: antet.tipMaterial, stare: 'activ' })),
-  default: () => [],
-  watch: [idCurent, () => antet.tipMaterial],
-})
-const numeLoc = (id?: number) => locuri.value.find(l => l.id === id)?.denumire ?? `#${id}`
-const numeCateg = (id?: number) => categorii.value.find(c => c.id === id)?.denumire ?? `#${id}`
-
 // ---- load an existing document ----
 if (idDoc.value) {
-  try {
-    // useRequestFetch forwards the session cookie during SSR
-    const doc = await useRequestFetch()(`/api/documente/${idDoc.value}`)
+  const { data: doc, error } = await useAsyncData(`document-${idDoc.value}`, () => useRequestFetch()(`/api/documente/${idDoc.value}`))
+  if (error.value || !doc.value) {
+    if (import.meta.client) notify.err(error.value)
+    await navigateTo('/documente')
+  }
+  else {
+    idGestiuneDoc.value = doc.value.idgestiune
+    incarcaDocument(doc.value)
+  }
+}
+
+const { data: categorii } = await useFetch<{ id: number, denumire: string }[]>('/api/categorii', {
+  query: computed(() => ({ idgestiune: idGestiune.value, tipmaterial: antet.tipMaterial, stare: 'activ' })),
+  default: () => [],
+  watch: [idGestiune, () => antet.tipMaterial],
+})
+const numeLoc = (id?: number) => (locuri.value ?? []).find(l => l.id === id)?.denumire ?? `#${id}`
+const numeCateg = (id?: number) => (categorii.value ?? []).find(c => c.id === id)?.denumire ?? `#${id}`
+
+function incarcaDocument(doc: { idtipoperatiuni: number, tipMaterial: TipMaterial, data: string, nrdoc: string, stare: 'activ' | 'inactiv', tip: 'i' | 'e' | 't', linii: (LinieDb & { tip_material: string })[] }) {
+  {
     Object.assign(antet, { idtipoperatiuni: doc.idtipoperatiuni, tipMaterial: doc.tipMaterial, data: doc.data, nrdoc: doc.nrdoc })
     stareDoc.value = doc.stare
     const r = linieDinDocument(doc.tip, doc.linii)
@@ -68,16 +84,19 @@ if (idDoc.value) {
     needitabil.value = r.motiv
     if (new Set(doc.linii.map(l => l.tip_material)).size > 1) needitabil.value = 'Documentul are linii cu tipuri de material diferite.'
   }
-  catch (e) {
-    notify.err(e)
-    await navigateTo('/documente')
-  }
 }
 
-type LinieDb = { id_reper: number, material: string, um: string, id_locdispunere: number, id_categ: number, stare_material: StareMaterial, cantitate_debit: string, cantitate_credit: string, pret: string }
+// switching the current gestiune starts a new document over (an existing one keeps its gestiune)
+watch(idCurent, () => {
+  if (idDoc.value) return
+  linii.value = []
+  golestePanou()
+})
+
+type LinieDb = { id_reper: number, material: string, um: string, id_locdispunere: number, id_categ: number, stare_material: StareMaterial, cantitate_debit: string, cantitate_credit: string, pret: string, debit: string, credit: string }
 function linieDinDocument(tip: 'i' | 'e' | 't', rows: LinieDb[]): { linii: LinieUI[], motiv: string } {
   const poz = (r: LinieDb): Pozitie => ({ idloc: r.id_locdispunere, idcateg: r.id_categ, stareMaterial: r.stare_material })
-  const baza = (r: LinieDb, cant: string) => ({ idreper: r.id_reper, material: r.material, um: r.um, cantitate: Dec.toFixed(Dec.from(cant), 2), pret: r.pret })
+  const baza = (r: LinieDb, cant: string) => ({ idreper: r.id_reper, material: r.material, um: r.um, cantitate: Dec.toFixed(Dec.from(cant), 2), pret: r.pret, valoare: Dec.toFixed(Dec.add(Dec.from(r.debit), Dec.from(r.credit)), 4) })
   const out: LinieUI[] = []
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i]!
@@ -118,11 +137,11 @@ let cerereStoc = 0
 async function incarcaStoc() {
   const nr = ++cerereStoc
   stoc.value = []
-  if (!areSursa.value || !panou.sursaLoc || !panou.sursaCateg || !idCurent.value) return
+  if (!areSursa.value || !panou.sursaLoc || !panou.sursaCateg || !idGestiune.value) return
   seIncarcaStoc.value = true
   try {
     const r = await $fetch<StocRand[]>('/api/stocuri', {
-      query: { idgestiune: idCurent.value, idloc: panou.sursaLoc, idcateg: panou.sursaCateg, tipMaterial: antet.tipMaterial, data: antet.data, exceptDocument: idDoc.value ?? undefined },
+      query: { idgestiune: idGestiune.value, idloc: panou.sursaLoc, idcateg: panou.sursaCateg, tipMaterial: antet.tipMaterial, data: antet.data, exceptDocument: idDoc.value ?? undefined },
     })
     if (nr === cerereStoc) stoc.value = r
   }
@@ -150,7 +169,7 @@ const stocAles = computed(() => optiuniStoc.value.find(o => o.cheie === panou.st
 const sugestii = ref<MaterialRand[]>([])
 async function cautaMaterial(e: { query: string }) {
   try {
-    const r = await $fetch<{ rows: MaterialRand[] }>('/api/materiale', { query: { idgestiune: idCurent.value, q: e.query, rows: 30, stare: 'activ' } })
+    const r = await $fetch<{ rows: MaterialRand[] }>('/api/materiale', { query: { idgestiune: idGestiune.value, q: e.query, rows: 30, stare: 'activ' } })
     sugestii.value = r.rows
   }
   catch (err) {
@@ -243,7 +262,7 @@ async function creeazaMaterial() {
   try {
     const r = await $fetch<{ material: MaterialRand, avertismente: string[] }>('/api/materiale', {
       method: 'POST',
-      body: { idgestiune: idCurent.value, denumire: materialNou.denumire, um: materialNou.um, cod_import: materialNou.cod_import, pretpredefinit: '0' },
+      body: { idgestiune: idGestiune.value, denumire: materialNou.denumire, um: materialNou.um, cod_import: materialNou.cod_import, pretpredefinit: '0' },
     })
     r.avertismente.forEach(a => notify.warn(a))
     panou.materialAles = r.material
@@ -258,7 +277,7 @@ async function creeazaMaterial() {
   }
 }
 
-const valoareLinie = (l: LinieUI) => Dec.toFixed(Dec.mul(Dec.from(l.cantitate), Dec.from(l.pret)), 4)
+const valoareLinie = (l: LinieUI) => l.valoare ?? Dec.toFixed(Dec.mul(Dec.from(l.cantitate), Dec.from(l.pret)), 4)
 const total = computed(() => Dec.toFixed(Dec.add(...linii.value.map(l => Dec.from(valoareLinie(l)))), 4))
 
 // changing the document type or material type invalidates the lines
@@ -287,7 +306,7 @@ async function salveaza() {
   salvare.value = true
   try {
     const body = {
-      idgestiune: idCurent.value,
+      idgestiune: idGestiune.value,
       idtipoperatiuni: antet.idtipoperatiuni,
       tipMaterial: antet.tipMaterial,
       data: antet.data,
@@ -326,7 +345,7 @@ const tipuriMaterial = TIPURI_MATERIAL.map(v => ({ v, l: DENUMIRI_TIP_MATERIAL[v
     <div class="page-head">
       <h1>
         {{ idDoc ? `Document nr. intern ${idDoc}` : 'Document nou' }}
-        <span class="sub">{{ gestiuneCurenta?.denumire }}</span>
+        <span class="sub">{{ numeGestiune }}</span>
       </h1>
       <Button
         v-if="idDoc"

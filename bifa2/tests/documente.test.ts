@@ -95,4 +95,27 @@ describe('documente', () => {
     await expect(salveazaDocument(db, { ...nir([{ idreper: 1, cantitate: '1', pret: '1', destinatie: dest }]), idgestiune: 2 }))
       .rejects.toThrow(/nu aparține gestiunii/)
   })
+
+  it('rejects a backdated exit that would make a later date negative', async () => {
+    await salveazaDocument(db, nir([{ idreper: 1, cantitate: '10', pret: '1', destinatie: dest }], '2025-01-01'))
+    await salveazaDocument(db, bon([{ idreper: 1, cantitate: '10', sursa: dest }], '2025-03-01'))
+    await expect(salveazaDocument(db, bon([{ idreper: 1, cantitate: '5', sursa: dest }], '2025-02-01', '11')))
+      .rejects.toThrow(/negativ/)
+  })
+
+  it('refuses to invalidate or shrink an entry whose stock was already used', async () => {
+    const intrare = await salveazaDocument(db, nir([{ idreper: 1, cantitate: '10', pret: '1', destinatie: dest }], '2025-01-01'))
+    await salveazaDocument(db, bon([{ idreper: 1, cantitate: '6', sursa: dest }], '2025-03-01'))
+    await expect(invalideazaDocument(db, intrare.id)).rejects.toThrow(/negativ/)
+    await expect(salveazaDocument(db, nir([{ idreper: 1, cantitate: '5', pret: '1', destinatie: dest }], '2025-01-01'), intrare.id))
+      .rejects.toThrow(/negativ/)
+    await expect(salveazaDocument(db, nir([{ idreper: 1, cantitate: '8', pret: '1', destinatie: dest }], '2025-01-01'), intrare.id))
+      .resolves.toMatchObject({ id: intrare.id })
+    expect((await citesteDocument(db, intrare.id))!.stare).toBe('activ')
+  })
+
+  it('rejects a category of another material type', async () => {
+    await expect(salveazaDocument(db, { ...nir([{ idreper: 1, cantitate: '1', pret: '1', destinatie: dest }]), tipMaterial: 'OB' }))
+      .rejects.toThrow(/alt tip de material/)
+  })
 })

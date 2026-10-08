@@ -66,8 +66,8 @@ function genereaza() {
 }
 
 const tipuriMaterial = TIPURI_MATERIAL.map(v => ({ v, l: DENUMIRI_TIP_MATERIAL[v] }))
-const optiuniCateg = computed(() => [{ id: null, denumire: 'Toate categoriile' }, ...categorii.value.map(c => ({ ...c, denumire: c.lipsa_import ? `${c.denumire} (nu intră în „toate”)` : c.denumire }))])
-const optiuniLoc = computed(() => [{ id: null, denumire: 'Toate locurile' }, ...locuri.value])
+const optiuniCateg = computed(() => [{ id: null, denumire: 'Toate categoriile' }, ...(categorii.value ?? []).map(c => ({ ...c, denumire: c.lipsa_import ? `${c.denumire} (nu intră în „toate”)` : c.denumire }))])
+const optiuniLoc = computed(() => [{ id: null, denumire: 'Toate locurile' }, ...(locuri.value ?? [])])
 const optiuniStare = [{ v: null, l: 'Toate stările' }, ...STARI_MATERIAL.map(s => ({ v: s, l: s }))]
 </script>
 
