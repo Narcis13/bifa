@@ -10,7 +10,7 @@ export default defineNuxtConfig({
       link: [{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
     },
   },
-  css: ['primeicons/primeicons.css', '~/assets/css/main.css'],
+  css: ['primeicons/primeicons.css', '~/assets/css/main.css', '~/assets/css/print.css'],
   runtimeConfig: {
     mysql: {
       host: '127.0.0.1',

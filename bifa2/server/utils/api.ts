@@ -48,3 +48,15 @@ export function conflictOnDuplicate(e: unknown, message: string): never {
   if (code === 'ER_ROW_IS_REFERENCED_2' || code === 'ER_ROW_IS_REFERENCED') apiError(409, 'Înregistrarea este folosită și nu poate fi ștearsă; dezactivați-o.')
   throw e
 }
+
+/** Runs a service call and turns its business-rule errors (with `status`) into API errors. */
+export async function regula<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn()
+  }
+  catch (e) {
+    const err = e as { status?: number, message?: string }
+    if (e instanceof Error && typeof err.status === 'number') apiError(err.status, err.message!)
+    throw e
+  }
+}

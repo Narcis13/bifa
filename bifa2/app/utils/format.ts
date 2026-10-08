@@ -28,3 +28,9 @@ export function dinIso(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y!, m! - 1, d!)
 }
+
+/** Romanian message of an API error (the API always sends `message`). */
+export function mesajEroare(e: unknown): string {
+  const err = e as { data?: { message?: string }, message?: string } | null
+  return err?.data?.message ?? err?.message ?? 'Eroare necunoscută'
+}

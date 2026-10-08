@@ -1,0 +1,60 @@
+/* Print-ready A4 report pages (screen preview + @media print). */
+.print-shell { background: var(--p-surface-200); min-height: 100vh; padding: 1rem 0 2rem; }
+.app-dark .print-shell { background: var(--p-surface-950); }
+
+.print-toolbar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: center;
+  padding: 0.5rem 1rem; margin: -1rem 0 1rem;
+  background: var(--app-card); border-bottom: 1px solid var(--app-border);
+}
+.print-toolbar .titlu-bara { font-weight: 600; margin-right: auto; }
+
+.a4 {
+  --ink: #1d232a; --rule: #222; --soft: #f1f4f5; --muted-ink: #5b6670;
+  width: 210mm; max-width: calc(100% - 16px); min-height: 297mm; margin: 0 auto; padding: 14mm 12mm;
+  background: #fff; color: var(--ink); box-shadow: 0 2px 14px rgb(0 0 0 / 0.15);
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif; font-size: 9.5pt; line-height: 1.35;
+}
+.a4.landscape { width: 297mm; min-height: 210mm; }
+
+.r-antet { display: flex; justify-content: space-between; gap: 1rem; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.02em; }
+.r-antet .stanga div:last-child { font-weight: 700; }
+.r-antet .dreapta { text-align: right; }
+.r-titlu { text-align: center; margin: 7mm 0 2mm; }
+.r-titlu h1 { font-size: 14pt; margin: 0; letter-spacing: 0.03em; text-transform: uppercase; }
+.r-titlu p { margin: 1mm 0 0; color: var(--muted-ink); }
+.r-filtre { display: flex; flex-wrap: wrap; gap: 1mm 5mm; justify-content: center; margin-bottom: 5mm; font-size: 8.5pt; }
+.r-filtre span b { font-weight: 600; }
+
+table.r-tabel { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.r-tabel th, .r-tabel td { border: 0.6pt solid var(--rule); padding: 1.2mm 1.5mm; vertical-align: top; }
+.r-tabel thead th { background: var(--soft); font-size: 8pt; font-weight: 700; text-align: center; text-transform: uppercase; }
+.r-tabel td.n { text-align: right; white-space: nowrap; }
+.r-tabel td.c { text-align: center; }
+.r-tabel tfoot td, .r-tabel tr.total td { font-weight: 700; background: var(--soft); }
+.r-tabel tr.sold td { font-style: italic; background: #fafbfb; }
+.r-tabel thead { display: table-header-group; }
+.r-tabel tr { break-inside: avoid; }
+.r-gol { text-align: center; padding: 8mm; color: var(--muted-ink); border: 0.6pt dashed var(--rule); }
+
+.r-semnaturi { display: grid; grid-template-columns: repeat(auto-fit, minmax(45mm, 1fr)); gap: 6mm; margin-top: 10mm; break-inside: avoid; }
+.r-semnaturi .bloc { text-align: center; }
+.r-semnaturi .rol { font-weight: 700; text-transform: uppercase; font-size: 8.5pt; }
+.r-semnaturi .nume { margin-top: 1mm; }
+.r-semnaturi .linie { margin-top: 10mm; border-top: 0.6pt solid var(--rule); padding-top: 1mm; font-size: 7.5pt; color: var(--muted-ink); }
+.r-declaratie { margin-top: 8mm; font-size: 8.5pt; text-align: justify; break-inside: avoid; }
+
+@media (max-width: 800px) {
+  .a4, .a4.landscape { padding: 6mm 4mm; min-height: 0; overflow-x: auto; }
+}
+
+@page { size: A4; margin: 10mm; }
+@page landscape { size: A4 landscape; margin: 8mm; }
+.a4.landscape { page: landscape; }
+@media print {
+  html, body { background: #fff !important; }
+  .print-shell { background: #fff; padding: 0; }
+  .print-toolbar, .p-toast { display: none !important; }
+  .a4, .a4.landscape { width: auto; max-width: none; min-height: 0; margin: 0; padding: 0; box-shadow: none; overflow: visible; }
+}
