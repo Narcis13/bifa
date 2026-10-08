@@ -29,8 +29,12 @@ const count = async (c: typeof legacy, table: string, where = '') =>
 console.log('1. Număr de rânduri pe tabel (legacy → bifa2)')
 const placeholderGest = await count(app, 'gestiuni', `WHERE denumire LIKE '${PLACEHOLDER_GESTIUNE}%'`)
 const placeholderCateg = await count(app, 'categorii', 'WHERE lipsa_import = true')
+// local development account created by `pnpm db:dev-user` after the import (not in legacy)
+const devUser = process.env.DEV_USER ?? 'demo.admin'
+const devUsers = Number(((await app.query<RowDataPacket[]>('SELECT COUNT(*) n FROM utilizatori WHERE username = ?', [devUser]))[0][0]!).n)
+  - Number(((await legacy.query<RowDataPacket[]>('SELECT COUNT(*) n FROM utilizatori WHERE username = ?', [devUser]))[0][0]!).n)
 const tables: { name: string, expectedDiff: number, why?: string }[] = [
-  { name: 'utilizatori', expectedDiff: 0 },
+  { name: 'utilizatori', expectedDiff: devUsers, why: devUsers ? `contul local de dezvoltare „${devUser}” creat cu pnpm db:dev-user` : undefined },
   { name: 'gestiuni', expectedDiff: placeholderGest, why: `${placeholderGest} gestiuni șterse în legacy dar încă referite, recreate inactive („${PLACEHOLDER_GESTIUNE}”)` },
   { name: 'conturi', expectedDiff: 0 },
   { name: 'categorii', expectedDiff: placeholderCateg, why: `${placeholderCateg} categorii „${PLACEHOLDER_CATEGORIE}” (una per gestiune) pentru liniile cu id_categ inexistent` },
