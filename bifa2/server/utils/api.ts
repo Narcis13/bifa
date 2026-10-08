@@ -2,11 +2,13 @@ import type { H3Event } from 'h3'
 import type { z } from 'zod'
 
 /**
- * One error shape for the whole API (h3's JSON error): { statusCode, statusMessage, message, data }.
+ * One error shape for the whole API (h3 JSON error): { statusCode, message, data }.
  * `message` is always Romanian and safe to show; `data.issues` lists field errors on 422.
  */
+const REASON: Record<number, string> = { 400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 409: 'Conflict', 422: 'Unprocessable Entity' }
+
 export function apiError(statusCode: number, message: string, data?: Record<string, unknown>): never {
-  throw createError({ statusCode, statusMessage: message, message, data })
+  throw createError({ statusCode, statusMessage: REASON[statusCode], message, data })
 }
 
 function issues(error: z.ZodError) {

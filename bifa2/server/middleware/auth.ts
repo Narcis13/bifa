@@ -4,5 +4,5 @@ const PUBLIC = new Set(['/api/auth/login'])
 export default defineEventHandler(async (event) => {
   const path = event.path.split('?')[0]!
   if (!path.startsWith('/api/') || PUBLIC.has(path) || path.startsWith('/api/_auth/')) return
-  await requireUserSession(event, { message: 'Trebuie să vă autentificați.' })
+  await requireUser(event)
 })
