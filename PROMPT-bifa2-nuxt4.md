@@ -35,11 +35,12 @@ If a missing detail would change the result, ask me one focused question (when u
 
 ### Data sources
 
-- `/Users/narcisbrindusescu/newme/bifa/bifa_structure.sql`: legacy schema (MySQL 5.5 dump, `latin1`). It contains no `CREATE DATABASE` or `USE` statement.
-- `/Users/narcisbrindusescu/newme/bifa/bifa_data.sql`: legacy data, data only (no `CREATE TABLE`, no `USE`). Load it after the structure file into a database you choose.
-- Local MySQL server 8.0.18 is running (socket `/tmp/mysql.sock`, port 3306). The client is at `/usr/local/mysql/bin/mysql` and is **not on PATH**. The credentials are in `nbifa-master/server/knexfile.js`. Put them only in `bifa2/.env`, which must be gitignored, and commit a `bifa2/.env.example` without secrets.
-- The local server also holds other, unrelated databases (`bifa`, `adata`, `casierie`, `cdata`, `mifi_dev`, …). **Never read from, write to or drop any of them.** The databases you own are `bifa_legacy` (the dump, loaded as-is), `bifa2` (the new app) and `bifa2_test` (tests). The local `bifa` database is an older copy; the dump files are the source of truth.
-- PostgreSQL also runs locally. Don't use it.
+- `C:\newme\bifa\bifa_structure.sql`: legacy schema (MySQL 5.5 dump, `latin1`). It contains no `CREATE DATABASE` or `USE` statement.
+- `C:\newme\bifa\bifa_data.sql`: legacy data, data only (no `CREATE TABLE`, no `USE`). Load it after the structure file into a database you choose.
+- Local MySQL Server 8.4.11 (Windows service `MySQL84`) is running on `127.0.0.1:3306` (TCP only, no socket). Connect as `root` with `caching_sha2_password` (the 8.4 default; `mysql_native_password` is disabled). The clients are in `C:\Program Files\MySQL\MySQL Server 8.4\bin\` (`mysql.exe`, `mysqldump.exe`) and are **not on PATH**; in Git Bash use `"/c/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe"`. The credentials are already in `C:\newme\bifa\.env` (`MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `DB_LEGACY`, `DB_APP`, `DB_TEST`, `MYSQL_BIN`). Do not use the password from `nbifa-master/server/knexfile.js`. Copy the values to `bifa2/.env` (gitignored; the repo-root `.gitignore` already ignores `.env`) and commit a `bifa2/.env.example` without secrets. Never print the password in logs or output; pass it to the client through the `MYSQL_PWD` environment variable, not on the command line.
+- Windows notes: the shell is PowerShell (Git Bash is also available). Use `pnpm`/`node` scripts for the import and verification, not `/usr/bin` tools, and load SQL files with Node (`mysql2`) or `mysql.exe` with `--default-character-set`. The dump files are `latin1`/MySQL 5.5 style, so import them with an explicit charset.
+- On this machine the server currently holds only the system schemas (`information_schema`, `mysql`, `performance_schema`, `sys`); the old `bifa`, `adata` and other databases do not exist here, so the "older local copy" numbers below cannot be re-checked locally. **Never read from, write to or drop any database other than your own**, and never touch the system schemas. The databases you own are `bifa_legacy` (the dump, loaded as-is), `bifa2` (the new app) and `bifa2_test` (tests). The dump files are the source of truth.
+- PostgreSQL is not running on this machine. Don't use it.
 
 ### Legacy features: the parity checklist
 
