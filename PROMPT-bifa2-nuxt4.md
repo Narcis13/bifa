@@ -110,8 +110,24 @@ Recompute these on the dump; the numbers above and below come from an older loca
 
 - Nuxt 4.x (`app/` directory layout; not Nuxt 5), TypeScript strict, pnpm, Node 24 (installed).
 - PrimeVue (latest stable) through `@primevue/nuxt-module`, styled mode, with a custom preset built on Aura. Add Tailwind CSS v4 and `tailwindcss-primeui` only if layout needs it. UI language: Romanian, with correct diacritics, `ro-RO` number and date formatting and the PrimeVue `ro` locale.
-- MySQL 8 with Drizzle ORM (`drizzle-orm/mysql2`) and `drizzle-kit` migrations, zod for validation, `nuxt-auth-utils` for sessions and password hashing, Vitest (with `@nuxt/test-utils` where useful) and `@nuxt/eslint`.
+- MySQL 8 with **Drizzle ORM** (`drizzle-orm/mysql2`) and `drizzle-kit` migrations as the only data-access layer of the app (see "Data access: Drizzle ORM" below; Prisma and other ORMs are not allowed), zod for validation, `nuxt-auth-utils` for sessions and password hashing, Vitest (with `@nuxt/test-utils` where useful) and `@nuxt/eslint`.
 - Decimal math: never use JS floats for money or quantities in the server. Do arithmetic in SQL or with integer-scaled or decimal values, and keep at least the legacy precision (`pret` 4 dp, values 4 dp, quantities 2 dp; widening is fine).
+
+### Data access: Drizzle ORM
+
+Chosen over Prisma because the hard parts (stock, balance and account-card reports) are SQL aggregates that must stay readable next to the legacy SQL, `decimal` comes back as a string (no float drift), table and column names stay hand-controlled, and there is no generate step or engine binary to break on Windows.
+
+- **Schema as code.** Define every table in `bifa2/server/database/schema.ts` (split into a `schema/` folder if it gets large) with `drizzle-orm/mysql-core`, using the legacy table and column names. Infer row and insert types from the schema (`$inferSelect` / `$inferInsert`). Use the `decimal` column type with explicit precision and scale, never `float`/`double`, and keep it as a string in TypeScript.
+- **Migrations.** `drizzle-kit generate` creates the SQL migrations into `bifa2/server/database/migrations/` and they are committed. `drizzle-kit migrate` (wrapped in `pnpm db:migrate`) applies them. Never edit an applied migration, and never use `drizzle-kit push` on `bifa2`. `drizzle.config.ts` reads the connection from `.env`.
+- **One connection module.** A single `server/utils/db.ts` creates the `mysql2` pool and the Drizzle instance (`mode: 'default'`), reads `MYSQL_*` / `DB_APP` through `runtimeConfig`, and is the only place that connects. Tests use the same module pointed at `bifa2_test`.
+- **Where queries live.** Only in `server/services/`. Route handlers never build queries. Services take the database or a transaction handle as a parameter (`db | tx`), so the same function runs inside and outside a transaction.
+- **Query style.** Use the query builder (`select`, `insert`, `update`) for CRUD. For stock and reports, write the aggregates with the `sql` template tag so the structure matches the legacy SQL, and bind every value as a parameter (never `sql.raw` with user input, never string concatenation). Keep the shared stock query in one service used by documents and reports (see legacy bug 6).
+- **Transactions.** Every multi-statement write uses `db.transaction()`. A document save (header plus lines, create or edit) and its exit-stock check run in one transaction, with `SELECT … FOR UPDATE` on the rows that decide the check.
+- **Decimals.** Do arithmetic in SQL (`SUM`, `ROUND`, etc.) or on decimal strings. Do not convert `decimal` strings to JS `number` for any calculation; convert only at the very edge for display, with the `ro-RO` formatter.
+- **Validation types.** Request and response shapes live in `shared/` as zod schemas. They may be derived from the Drizzle schema with `drizzle-zod` (or the built-in zod helpers of the installed Drizzle version; check the docs with Context7), but the public API shape is defined by the zod schema, not by the table.
+- **Where raw `mysql2` is allowed.** Only in the scripts under `bifa2/scripts/`: loading the two dump files into `bifa_legacy`, and running the legacy report SQL in `verify:reports` and the legacy stock SQL in `db:verify` against `bifa_legacy`. That SQL must stay verbatim (parameterized), so it is not rewritten in Drizzle. The import into `bifa2` writes through the Drizzle schema, so column types and constraints are enforced.
+- **Tests.** Service tests run against `bifa2_test`, created and migrated by the test setup, and use synthetic data only.
+- **Record in Decisions** the installed versions of `drizzle-orm`, `drizzle-kit` and `mysql2`, and any Drizzle limitation you worked around with `sql`.
 
 ### Schema direction (optimize, but stay close to the legacy one)
 
