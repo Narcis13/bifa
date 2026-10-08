@@ -23,7 +23,7 @@ export interface FiltruMiscari {
 
 /**
  * FROM + WHERE for the active movements matching the filter. Aliases: t = tranzactii,
- * op = operatiuni, c = categorii, m = materiale. All values are bound parameters.
+ * op = operatiuni, c = categorii, m = materiale, td = tipuridocumente. All values are bound parameters.
  */
 export function miscari(f: FiltruMiscari): SQL {
   const conds: SQL[] = [
@@ -42,6 +42,7 @@ export function miscari(f: FiltruMiscari): SQL {
     JOIN operatiuni op ON op.id = t.idAntet
     JOIN categorii c ON c.id = t.id_categ
     JOIN materiale m ON m.id = t.id_reper
+    JOIN tipuridocumente td ON td.id = op.idtipoperatiuni
     WHERE ${sql.join(conds, sql` AND `)}`
 }
 
