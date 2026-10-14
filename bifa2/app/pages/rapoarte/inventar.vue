@@ -1,9 +1,12 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'print' })
 useHead({ title: 'Lista de inventariere – BIFA' })
+const route = useRoute()
 const { apiQuery, filtre, perioada, gestiune, dirFin, comandant } = useRaport()
 const { data, status, error } = await useFetch('/api/rapoarte/inventar', { query: apiQuery })
 const membri = computed(() => [gestiune.value?.i_membru1, gestiune.value?.i_membru2, gestiune.value?.i_membru3].filter((m): m is string => !!m))
+/** Blind inventory sheet: leave quantity and value columns empty; keep unit price. */
+const faraCantitati = computed(() => route.query.faraCantitati === 'true' || route.query.faraCantitati === '1')
 </script>
 
 <template>
@@ -73,7 +76,7 @@ const membri = computed(() => [gestiune.value?.i_membru1, gestiune.value?.i_memb
           </td>
           <td />
           <td class="n">
-            {{ fmtNum(l.stocfinal) }}
+            {{ faraCantitati ? '' : fmtNum(l.stocfinal) }}
           </td>
           <td />
           <td />
@@ -81,7 +84,7 @@ const membri = computed(() => [gestiune.value?.i_membru1, gestiune.value?.i_memb
             {{ fmtNum(l.pret, 4) }}
           </td>
           <td class="n">
-            {{ fmtNum(l.valoarestoc) }}
+            {{ faraCantitati ? '' : fmtNum(l.valoarestoc) }}
           </td>
           <td />
           <td />
@@ -96,7 +99,7 @@ const membri = computed(() => [gestiune.value?.i_membru1, gestiune.value?.i_memb
             TOTAL
           </td>
           <td class="n">
-            {{ fmtNum(data.totaluri.valoarestoc) }}
+            {{ faraCantitati ? '' : fmtNum(data.totaluri.valoarestoc) }}
           </td>
           <td />
           <td />

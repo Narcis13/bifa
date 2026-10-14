@@ -27,6 +27,7 @@ const f = reactive({
   stareMaterial: null as string | null,
   perioada: [new Date(azi.getFullYear(), 0, 1), azi] as Date[],
   includeFaraStoc: false,
+  faraCantitati: false,
   material: null as { id: number, denumire: string } | null,
 })
 
@@ -61,6 +62,7 @@ function genereaza() {
     if (f.stareMaterial) query.stareMaterial = f.stareMaterial
   }
   if (raport.value !== 'fisa' && raport.value !== 'registru' && f.includeFaraStoc) query.includeFaraStoc = 'true'
+  if (raport.value === 'inventar' && f.faraCantitati) query.faraCantitati = 'true'
   if (raport.value === 'fisa') query.idreper = String(f.material!.id)
   return navigateTo({ path: `/rapoarte/${raport.value}`, query })
 }
@@ -195,6 +197,17 @@ const optiuniStare = [{ v: null, l: 'Toate stările' }, ...STARI_MATERIAL.map(s 
             binary
           />
           <label for="farastoc">Include și materialele fără stoc la începutul și sfârșitul perioadei (cu mișcări în perioadă)</label>
+        </div>
+        <div
+          v-if="raport === 'inventar'"
+          class="field field-wide check"
+        >
+          <Checkbox
+            v-model="f.faraCantitati"
+            input-id="faracantitati"
+            binary
+          />
+          <label for="faracantitati">Afișează lista fără cantități (stoc scriptic și valoare goale, pentru inventariere faptică)</label>
         </div>
         <Message
           v-if="eroare"
