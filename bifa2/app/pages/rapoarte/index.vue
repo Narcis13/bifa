@@ -9,6 +9,7 @@ const { idCurent, gestiuneCurenta } = useSesiune()
 const RAPOARTE = [
   { v: 'balanta', l: 'Balanța analitică', icon: 'pi pi-chart-bar', desc: 'Stoc inițial, intrări, ieșiri și stoc final, cantitativ și valoric, pe material.' },
   { v: 'inventar', l: 'Lista de inventariere', icon: 'pi pi-list-check', desc: 'Stocul scriptic la sfârșitul perioadei, cu comisia de inventariere a gestiunii.' },
+  { v: 'situatie', l: 'Situație repere', icon: 'pi pi-map', desc: 'Cartografierea stocului pe reper: cantitate, preț mediu, valoare, categorie, loc și stare.' },
   { v: 'fisa', l: 'Fișa de cont', icon: 'pi pi-id-card', desc: 'Soldul inițial și toate mișcările unui material, cu soldul după fiecare operațiune.' },
   { v: 'registru', l: 'Registru documente', icon: 'pi pi-book', desc: 'Documentele justificative din perioadă, cu totalurile debit și credit.' },
 ] as const
@@ -57,11 +58,13 @@ function genereaza() {
   }
   if (raport.value !== 'registru') {
     query.tipMaterial = f.tipMaterial
-    if (f.idcateg) query.idcateg = String(f.idcateg)
-    if (f.idloc) query.idloc = String(f.idloc)
-    if (f.stareMaterial) query.stareMaterial = f.stareMaterial
+    if (raport.value !== 'situatie') {
+      if (f.idcateg) query.idcateg = String(f.idcateg)
+      if (f.idloc) query.idloc = String(f.idloc)
+      if (f.stareMaterial) query.stareMaterial = f.stareMaterial
+    }
   }
-  if (raport.value !== 'fisa' && raport.value !== 'registru' && f.includeFaraStoc) query.includeFaraStoc = 'true'
+  if (raport.value !== 'fisa' && raport.value !== 'registru' && raport.value !== 'situatie' && f.includeFaraStoc) query.includeFaraStoc = 'true'
   if (raport.value === 'inventar' && f.faraCantitati) query.faraCantitati = 'true'
   if (raport.value === 'fisa') query.idreper = String(f.material!.id)
   return navigateTo({ path: `/rapoarte/${raport.value}`, query })
@@ -131,40 +134,42 @@ const optiuniStare = [{ v: null, l: 'Toate stările' }, ...STARI_MATERIAL.map(s 
               aria-labelledby="tipmat"
             />
           </div>
-          <div class="field">
-            <label for="categ">Categorie</label>
-            <Select
-              v-model="f.idcateg"
-              input-id="categ"
-              :options="optiuniCateg"
-              placeholder="Toate categoriile"
-              option-label="denumire"
-              option-value="id"
-            />
-          </div>
-          <div class="field">
-            <label for="loc">Loc de dispunere</label>
-            <Select
-              v-model="f.idloc"
-              input-id="loc"
-              :options="optiuniLoc"
-              placeholder="Toate locurile"
-              option-label="denumire"
-              option-value="id"
-              filter
-            />
-          </div>
-          <div class="field">
-            <label for="stare">Stare material</label>
-            <Select
-              v-model="f.stareMaterial"
-              input-id="stare"
-              :options="optiuniStare"
-              placeholder="Toate stările"
-              option-label="l"
-              option-value="v"
-            />
-          </div>
+          <template v-if="raport !== 'situatie'">
+            <div class="field">
+              <label for="categ">Categorie</label>
+              <Select
+                v-model="f.idcateg"
+                input-id="categ"
+                :options="optiuniCateg"
+                placeholder="Toate categoriile"
+                option-label="denumire"
+                option-value="id"
+              />
+            </div>
+            <div class="field">
+              <label for="loc">Loc de dispunere</label>
+              <Select
+                v-model="f.idloc"
+                input-id="loc"
+                :options="optiuniLoc"
+                placeholder="Toate locurile"
+                option-label="denumire"
+                option-value="id"
+                filter
+              />
+            </div>
+            <div class="field">
+              <label for="stare">Stare material</label>
+              <Select
+                v-model="f.stareMaterial"
+                input-id="stare"
+                :options="optiuniStare"
+                placeholder="Toate stările"
+                option-label="l"
+                option-value="v"
+              />
+            </div>
+          </template>
         </template>
         <div
           v-if="raport === 'fisa'"

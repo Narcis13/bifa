@@ -74,6 +74,50 @@ export async function listaInventariere(db: DbOrTx, f: FiltruRaport) {
   }
 }
 
+export interface LinieSituatieRepere {
+  id_reper: number
+  denumire: string
+  um: string
+  id_categ: number
+  categorie: string
+  id_loc: number
+  loc: string
+  stare_material: string
+  cantitate: string
+  valoare: string
+  pret: string
+}
+
+/**
+ * Situație repere: closing stock at period end, broken down by material × category × place × state
+ * (cartography of where each item sits in the gestiune), with average unit price.
+ */
+export async function situatieRepere(db: DbOrTx, f: FiltruRaport) {
+  const { datasfarsit: ds } = f
+  const raw = await rows<Omit<LinieSituatieRepere, 'pret'>>(db, sql`
+    SELECT
+      t.id_reper, m.denumire, m.um,
+      t.id_categ, c.denumire AS categorie,
+      t.id_locdispunere AS id_loc, l.denumire AS loc,
+      t.stare_material,
+      IFNULL(SUM(CASE WHEN op.data <= ${ds} THEN t.cantitate_debit - t.cantitate_credit END), 0) AS cantitate,
+      IFNULL(SUM(CASE WHEN op.data <= ${ds} THEN t.debit - t.credit END), 0) AS valoare
+    ${miscari(f)}
+    GROUP BY t.id_reper, m.denumire, m.um, t.id_categ, c.denumire, t.id_locdispunere, l.denumire, t.stare_material
+    HAVING cantitate > 0
+    ORDER BY m.denumire, t.id_reper, c.denumire, l.denumire, t.stare_material`)
+  const linii: LinieSituatieRepere[] = raw.map(l => ({
+    ...l,
+    pret: Dec.from(l.cantitate) === 0n ? '0.0000' : Dec.toFixed(Dec.div(Dec.from(l.valoare), Dec.from(l.cantitate)), 4),
+  }))
+  return {
+    linii,
+    totaluri: {
+      valoare: Dec.toFixed(Dec.add(...linii.map(l => Dec.from(l.valoare))), 4),
+    },
+  }
+}
+
 export interface MiscareFisa {
   idAntet: number
   data: string

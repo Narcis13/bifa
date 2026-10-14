@@ -18,6 +18,7 @@ export const MENIU: { titlu: string, items: ElementMeniu[] }[] = [
     items: [
       { label: 'Balanța analitică', icon: 'pi pi-chart-bar', to: '/rapoarte?raport=balanta' },
       { label: 'Lista de inventariere', icon: 'pi pi-list-check', to: '/rapoarte?raport=inventar' },
+      { label: 'Situație repere', icon: 'pi pi-map', to: '/rapoarte?raport=situatie' },
       { label: 'Fișa de cont', icon: 'pi pi-id-card', to: '/rapoarte?raport=fisa' },
       { label: 'Registru documente', icon: 'pi pi-book', to: '/rapoarte?raport=registru' },
     ],
