@@ -6,8 +6,8 @@ defineProps<{ blocuri: { rol: string, nume?: string | null, detalii?: string[] }
 <template>
   <section class="r-semnaturi">
     <div
-      v-for="b in blocuri"
-      :key="b.rol"
+      v-for="(b, i) in blocuri"
+      :key="`${b.rol}-${i}`"
       class="bloc"
     >
       <div class="rol">

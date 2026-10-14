@@ -2,11 +2,18 @@
 definePageMeta({ layout: 'print' })
 useHead({ title: 'Lista de inventariere – BIFA' })
 const route = useRoute()
-const { apiQuery, filtre, perioada, gestiune, dirFin, comandant } = useRaport()
+const { apiQuery, filtre, perioada, gestiune } = useRaport()
 const { data, status, error } = await useFetch('/api/rapoarte/inventar', { query: apiQuery })
 const membri = computed(() => [gestiune.value?.i_membru1, gestiune.value?.i_membru2, gestiune.value?.i_membru3].filter((m): m is string => !!m))
 /** Blind inventory sheet: leave quantity and value columns empty; keep unit price. */
 const faraCantitati = computed(() => route.query.faraCantitati === 'true' || route.query.faraCantitati === '1')
+/** One signature block per commission member; gestionar / contabilitate without printed names. */
+const semnaturi = computed(() => [
+  { rol: 'Comisia de inventariere, președinte', nume: gestiune.value?.i_presedinte },
+  ...membri.value.map(m => ({ rol: 'Membru', nume: m })),
+  { rol: 'Gestionar' },
+  { rol: 'Contabilitate' },
+])
 </script>
 
 <template>
@@ -112,21 +119,13 @@ const faraCantitati = computed(() => route.query.faraCantitati === 'true' || rou
     >
       Niciun material cu stoc în perioada și filtrele alese.
     </div>
-    <RaportSemnaturi
-      :blocuri="[
-        { rol: 'Comisia de inventariere, președinte', nume: gestiune?.i_presedinte },
-        { rol: 'Membri', detalii: membri },
-        { rol: 'Gestionar', nume: gestiune?.gestionar },
-        { rol: 'Contabilitate', nume: dirFin },
-        { rol: 'Aprob, comandant', nume: comandant },
-      ]"
-    />
+    <RaportSemnaturi :blocuri="semnaturi" />
     <p class="r-declaratie">
       Bunurile materiale arătate în prezenta listă de inventariere au fost constatate ca existente de către comisie
       în prezența mea. Am / nu am obiecții în legătură cu cele constatate și confirm că bunurile materiale sunt în
       păstrarea mea.
       <br><br>
-      Gestionar {{ gestiune?.gestionar ?? '______________________' }}, semnătura ______________
+      Gestionar ______________________, semnătura ______________
     </p>
   </RaportPagina>
 </template>
