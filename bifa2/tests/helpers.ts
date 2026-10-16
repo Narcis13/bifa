@@ -8,7 +8,10 @@ export function testDb() {
   return openAppDb(env.test)
 }
 
-const TABLES = ['tranzactii', 'operatiuni', 'tipuridocumente', 'materiale', 'categorii', 'locuri', 'gestiuni', 'conturi', 'utilizatori', 'setari']
+const TABLES = [
+  'mf_amortizari', 'mf_linii', 'mf_documente', 'mijloace_fixe',
+  'tranzactii', 'operatiuni', 'tipuridocumente', 'materiale', 'categorii', 'locuri', 'gestiuni', 'conturi', 'utilizatori', 'setari',
+]
 
 /** Empties every table. */
 export async function reset(db: ReturnType<typeof testDb>['db']) {
@@ -32,6 +35,7 @@ export async function seed(db: ReturnType<typeof testDb>['db']) {
   await db.insert(s.categorii).values([
     { id: 1, denumire: 'Consumabile', idgestiune: 1, tipmaterial: 'M', idcont: 1, idcontchelt: 1 },
     { id: 2, denumire: 'Piese', idgestiune: 1, tipmaterial: 'M', idcont: 1, idcontchelt: 1 },
+    { id: 3, denumire: 'Echipamente MF', idgestiune: 1, tipmaterial: 'MF', idcont: 1, idcontchelt: 1 },
   ])
   await db.insert(s.locuri).values([{ id: 1, denumire: 'DEPOZIT' }, { id: 2, denumire: 'SECȚIA A' }])
   await db.insert(s.materiale).values([

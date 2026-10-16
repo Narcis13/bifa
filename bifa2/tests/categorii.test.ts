@@ -18,17 +18,18 @@ const nou = (extra: Record<string, unknown> = {}) =>
 describe('categorii', () => {
   it('lists with the gestiune and the accounts as display strings', async () => {
     const lista = await listaCategorii(db, { idgestiune: 1 })
-    expect(lista.map(c => c.denumire)).toEqual(['Consumabile', 'Piese'])
+    expect(lista.map(c => c.denumire)).toEqual(['Consumabile', 'Echipamente MF', 'Piese'])
     expect(lista[0]).toMatchObject({ gestiune: 'Gestiune test', cont: '302 Materiale consumabile', contcheltuiala: '302 Materiale consumabile', lipsa_import: false, stare: 'activ' })
   })
 
   it('filters by gestiune, type and state', async () => {
     await adaugaCategorie(db, nou({ idgestiune: 2, tipmaterial: 'OB', denumire: 'Mobilier' }))
     await modificaCategorie(db, 2, { stare: 'inactiv' })
-    expect((await listaCategorii(db)).map(c => c.denumire).sort()).toEqual(['Consumabile', 'Mobilier', 'Piese'])
+    expect((await listaCategorii(db)).map(c => c.denumire).sort()).toEqual(['Consumabile', 'Echipamente MF', 'Mobilier', 'Piese'])
     expect((await listaCategorii(db, { idgestiune: 2 })).map(c => c.denumire)).toEqual(['Mobilier'])
     expect((await listaCategorii(db, { tipmaterial: 'OB' })).map(c => c.denumire)).toEqual(['Mobilier'])
-    expect((await listaCategorii(db, { idgestiune: 1, stare: 'activ' })).map(c => c.denumire)).toEqual(['Consumabile'])
+    expect((await listaCategorii(db, { idgestiune: 1, stare: 'activ', tipmaterial: 'M' })).map(c => c.denumire)).toEqual(['Consumabile'])
+    expect((await listaCategorii(db, { tipmaterial: 'MF' })).map(c => c.denumire)).toEqual(['Echipamente MF'])
     expect(categoriiQuery.parse({ idgestiune: '1', tipmaterial: 'MF' })).toEqual({ idgestiune: 1, tipmaterial: 'MF' })
   })
 

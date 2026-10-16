@@ -12,8 +12,12 @@ const RAPOARTE = [
   { v: 'situatie', l: 'Situație repere', icon: 'pi pi-map', desc: 'Cartografierea stocului pe reper: cantitate, preț mediu, valoare, categorie, loc și stare.' },
   { v: 'fisa', l: 'Fișa de cont', icon: 'pi pi-id-card', desc: 'Soldul inițial și toate mișcările unui material, cu soldul după fiecare operațiune.' },
   { v: 'registru', l: 'Registru documente', icon: 'pi pi-book', desc: 'Documentele justificative din perioadă, cu totalurile debit și credit.' },
+  { v: 'fisa-mf', l: 'Fișa mijlocului fix', icon: 'pi pi-building', desc: 'Identificare, mișcări și amortizarea liniară a unui mijloc fix (cod 14-2-2).' },
+  { v: 'amortizare-mf', l: 'Situație amortizare', icon: 'pi pi-percentage', desc: 'Amortizarea liniară lunară pe mijloace fixe, cu total pe gestiune.' },
 ] as const
 type Raport = (typeof RAPOARTE)[number]['v']
+
+const esteMf = (r: Raport) => r === 'fisa-mf' || r === 'amortizare-mf'
 
 const raport = ref<Raport>((RAPOARTE.some(r => r.v === route.query.raport) ? route.query.raport : 'balanta') as Raport)
 watch(() => route.query.raport, (r) => {
@@ -21,6 +25,12 @@ watch(() => route.query.raport, (r) => {
 })
 
 const azi = new Date()
+const LUNI = [
+  { v: 1, l: 'Ianuarie' }, { v: 2, l: 'Februarie' }, { v: 3, l: 'Martie' },
+  { v: 4, l: 'Aprilie' }, { v: 5, l: 'Mai' }, { v: 6, l: 'Iunie' },
+  { v: 7, l: 'Iulie' }, { v: 8, l: 'August' }, { v: 9, l: 'Septembrie' },
+  { v: 10, l: 'Octombrie' }, { v: 11, l: 'Noiembrie' }, { v: 12, l: 'Decembrie' },
+]
 const f = reactive({
   tipMaterial: 'M' as TipMaterial,
   idcateg: null as number | null,
@@ -30,12 +40,16 @@ const f = reactive({
   includeFaraStoc: false,
   faraCantitati: false,
   material: null as { id: number, denumire: string } | null,
+  mijloc: null as { id: number, nr_inventar: string, denumire: string } | null,
+  an: azi.getFullYear(),
+  luna: azi.getMonth() + 1,
 })
 
+const tipCateg = computed(() => (esteMf(raport.value) ? 'MF' : f.tipMaterial))
 const { data: categorii } = await useFetch<{ id: number, denumire: string, lipsa_import?: boolean }[]>('/api/categorii', {
-  query: computed(() => ({ idgestiune: idCurent.value, tipmaterial: f.tipMaterial })),
+  query: computed(() => ({ idgestiune: idCurent.value, tipmaterial: tipCateg.value })),
   default: () => [],
-  watch: [idCurent, () => f.tipMaterial],
+  watch: [idCurent, tipCateg],
 })
 const { data: locuri } = await useFetch('/api/locuri', { default: () => [] })
 
@@ -45,9 +59,34 @@ async function cautaMaterial(e: { query: string }) {
   sugestii.value = r.rows
 }
 
+const sugestiiMf = ref<{ id: number, nr_inventar: string, denumire: string }[]>([])
+async function cautaMf(e: { query: string }) {
+  const r = await $fetch<{ rows: { id: number, nr_inventar: string, denumire: string }[] }>('/api/mijloace-fixe', {
+    query: { idgestiune: idCurent.value, q: e.query, stare_mf: 'toate', rows: 30 },
+  })
+  sugestiiMf.value = r.rows
+}
+
 const eroare = ref('')
 function genereaza() {
   eroare.value = ''
+  if (raport.value === 'fisa-mf') {
+    if (!f.mijloc) return (eroare.value = 'Alegeți mijlocul fix pentru fișă.')
+    return navigateTo({
+      path: '/rapoarte/fisa-mf',
+      query: { idgestiune: String(idCurent.value), idmijloc: String(f.mijloc.id) },
+    })
+  }
+  if (raport.value === 'amortizare-mf') {
+    const query: Record<string, string> = {
+      idgestiune: String(idCurent.value),
+      an: String(f.an),
+      luna: String(f.luna),
+    }
+    if (f.idcateg) query.idcateg = String(f.idcateg)
+    if (f.idloc) query.idloc = String(f.idloc)
+    return navigateTo({ path: '/rapoarte/amortizare-mf', query })
+  }
   const [di, ds] = f.perioada
   if (!di || !ds) return (eroare.value = 'Alegeți perioada (data de început și de sfârșit).')
   if (raport.value === 'fisa' && !f.material) return (eroare.value = 'Alegeți materialul pentru fișa de cont.')
@@ -110,110 +149,177 @@ const optiuniStare = [{ v: null, l: 'Toate stările' }, ...STARI_MATERIAL.map(s 
         class="card form-grid"
         @submit.prevent="genereaza"
       >
-        <div class="field field-wide">
-          <label for="perioada">Perioada</label>
-          <DatePicker
-            v-model="f.perioada"
-            input-id="perioada"
-            selection-mode="range"
-            :manual-input="false"
-            date-format="dd.mm.yy"
-            show-icon
-            icon-display="input"
-          />
-        </div>
-        <template v-if="raport !== 'registru'">
+        <template v-if="raport === 'fisa-mf'">
           <div class="field field-wide">
-            <label for="tipmat">Tip material</label>
-            <SelectButton
-              v-model="f.tipMaterial"
-              :options="tipuriMaterial"
-              option-label="l"
-              option-value="v"
-              :allow-empty="false"
-              aria-labelledby="tipmat"
+            <label for="mijloc">Mijloc fix</label>
+            <AutoComplete
+              v-model="f.mijloc"
+              input-id="mijloc"
+              :suggestions="sugestiiMf"
+              option-label="denumire"
+              :delay="250"
+              force-selection
+              placeholder="Caută după nr. inventar sau denumire…"
+              fluid
+              @complete="cautaMf"
+            >
+              <template #option="{ option }">
+                {{ option.nr_inventar }} — {{ option.denumire }}
+              </template>
+            </AutoComplete>
+          </div>
+        </template>
+        <template v-else-if="raport === 'amortizare-mf'">
+          <div class="field">
+            <label for="an-mf">An</label>
+            <InputNumber
+              v-model="f.an"
+              input-id="an-mf"
+              :min="1990"
+              :max="2100"
+              show-buttons
             />
           </div>
-          <template v-if="raport !== 'situatie'">
-            <div class="field">
-              <label for="categ">Categorie</label>
-              <Select
-                v-model="f.idcateg"
-                input-id="categ"
-                :options="optiuniCateg"
-                placeholder="Toate categoriile"
-                option-label="denumire"
-                option-value="id"
-              />
-            </div>
-            <div class="field">
-              <label for="loc">Loc de dispunere</label>
-              <Select
-                v-model="f.idloc"
-                input-id="loc"
-                :options="optiuniLoc"
-                placeholder="Toate locurile"
-                option-label="denumire"
-                option-value="id"
-                filter
-              />
-            </div>
-            <div class="field">
-              <label for="stare">Stare material</label>
-              <Select
-                v-model="f.stareMaterial"
-                input-id="stare"
-                :options="optiuniStare"
-                placeholder="Toate stările"
+          <div class="field">
+            <label for="luna-mf">Luna</label>
+            <Select
+              v-model="f.luna"
+              input-id="luna-mf"
+              :options="LUNI"
+              option-label="l"
+              option-value="v"
+            />
+          </div>
+          <div class="field">
+            <label for="categ-mf">Categorie MF</label>
+            <Select
+              v-model="f.idcateg"
+              input-id="categ-mf"
+              :options="optiuniCateg"
+              placeholder="Toate categoriile"
+              option-label="denumire"
+              option-value="id"
+            />
+          </div>
+          <div class="field">
+            <label for="loc-mf">Loc de dispunere</label>
+            <Select
+              v-model="f.idloc"
+              input-id="loc-mf"
+              :options="optiuniLoc"
+              placeholder="Toate locurile"
+              option-label="denumire"
+              option-value="id"
+              filter
+            />
+          </div>
+        </template>
+        <template v-else>
+          <div class="field field-wide">
+            <label for="perioada">Perioada</label>
+            <DatePicker
+              v-model="f.perioada"
+              input-id="perioada"
+              selection-mode="range"
+              :manual-input="false"
+              date-format="dd.mm.yy"
+              show-icon
+              icon-display="input"
+            />
+          </div>
+          <template v-if="raport !== 'registru'">
+            <div class="field field-wide">
+              <label for="tipmat">Tip material</label>
+              <SelectButton
+                v-model="f.tipMaterial"
+                :options="tipuriMaterial"
                 option-label="l"
                 option-value="v"
+                :allow-empty="false"
+                aria-labelledby="tipmat"
               />
             </div>
-          </template>
-        </template>
-        <div
-          v-if="raport === 'fisa'"
-          class="field field-wide"
-        >
-          <label for="material">Material</label>
-          <AutoComplete
-            v-model="f.material"
-            input-id="material"
-            :suggestions="sugestii"
-            option-label="denumire"
-            :delay="250"
-            force-selection
-            placeholder="Caută după denumire sau cod…"
-            fluid
-            @complete="cautaMaterial"
-          >
-            <template #option="{ option }">
-              {{ option.denumire }} <span class="muted">({{ option.um }}) · cod {{ option.id }}</span>
+            <template v-if="raport !== 'situatie'">
+              <div class="field">
+                <label for="categ">Categorie</label>
+                <Select
+                  v-model="f.idcateg"
+                  input-id="categ"
+                  :options="optiuniCateg"
+                  placeholder="Toate categoriile"
+                  option-label="denumire"
+                  option-value="id"
+                />
+              </div>
+              <div class="field">
+                <label for="loc">Loc de dispunere</label>
+                <Select
+                  v-model="f.idloc"
+                  input-id="loc"
+                  :options="optiuniLoc"
+                  placeholder="Toate locurile"
+                  option-label="denumire"
+                  option-value="id"
+                  filter
+                />
+              </div>
+              <div class="field">
+                <label for="stare">Stare material</label>
+                <Select
+                  v-model="f.stareMaterial"
+                  input-id="stare"
+                  :options="optiuniStare"
+                  placeholder="Toate stările"
+                  option-label="l"
+                  option-value="v"
+                />
+              </div>
             </template>
-          </AutoComplete>
-        </div>
-        <div
-          v-if="raport === 'balanta' || raport === 'inventar'"
-          class="field field-wide check"
-        >
-          <Checkbox
-            v-model="f.includeFaraStoc"
-            input-id="farastoc"
-            binary
-          />
-          <label for="farastoc">Include și materialele fără stoc la începutul și sfârșitul perioadei (cu mișcări în perioadă)</label>
-        </div>
-        <div
-          v-if="raport === 'inventar'"
-          class="field field-wide check"
-        >
-          <Checkbox
-            v-model="f.faraCantitati"
-            input-id="faracantitati"
-            binary
-          />
-          <label for="faracantitati">Afișează lista fără cantități (stoc scriptic și valoare goale, pentru inventariere faptică)</label>
-        </div>
+          </template>
+          <div
+            v-if="raport === 'fisa'"
+            class="field field-wide"
+          >
+            <label for="material">Material</label>
+            <AutoComplete
+              v-model="f.material"
+              input-id="material"
+              :suggestions="sugestii"
+              option-label="denumire"
+              :delay="250"
+              force-selection
+              placeholder="Caută după denumire sau cod…"
+              fluid
+              @complete="cautaMaterial"
+            >
+              <template #option="{ option }">
+                {{ option.denumire }} <span class="muted">({{ option.um }}) · cod {{ option.id }}</span>
+              </template>
+            </AutoComplete>
+          </div>
+          <div
+            v-if="raport === 'balanta' || raport === 'inventar'"
+            class="field field-wide check"
+          >
+            <Checkbox
+              v-model="f.includeFaraStoc"
+              input-id="farastoc"
+              binary
+            />
+            <label for="farastoc">Include și materialele fără stoc la începutul și sfârșitul perioadei (cu mișcări în perioadă)</label>
+          </div>
+          <div
+            v-if="raport === 'inventar'"
+            class="field field-wide check"
+          >
+            <Checkbox
+              v-model="f.faraCantitati"
+              input-id="faracantitati"
+              binary
+            />
+            <label for="faracantitati">Afișează lista fără cantități (stoc scriptic și valoare goale, pentru inventariere faptică)</label>
+          </div>
+        </template>
         <Message
           v-if="eroare"
           severity="error"

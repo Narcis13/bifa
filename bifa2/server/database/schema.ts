@@ -169,6 +169,88 @@ export const setari = mysqlTable('setari', {
   ...timestamps,
 })
 
+/**
+ * Fixed-asset register (mijloace fixe) — separate from materials stock.
+ * Amortization follows Legea 15/1994 (linear only) and useful-life from HG 2139/2004.
+ */
+export const STARI_MF = ['in_functiune', 'casat'] as const
+
+export const mijloaceFixe = mysqlTable('mijloace_fixe', {
+  id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+  nr_inventar: varchar('nr_inventar', { length: 45 }).notNull(),
+  denumire: varchar('denumire', { length: 255 }).notNull(),
+  caracteristici: varchar('caracteristici', { length: 500 }),
+  idgestiune: int('idgestiune', { unsigned: true }).notNull().references(() => gestiuni.id),
+  idcateg: int('idcateg', { unsigned: true }).notNull().references(() => categorii.id),
+  idloc: int('idloc').notNull().references(() => locuri.id),
+  /** Classification code from the HG 2139/2004 catalog, e.g. "3.1.1". */
+  cod_clasificare: varchar('cod_clasificare', { length: 30 }).notNull(),
+  /** Main group: 1 Construcții, 2 Instalații/transport, 3 Mobilier/birotică. */
+  grupa: tinyint('grupa').notNull(),
+  valoare_intrare: decimal('valoare_intrare', { precision: 14, scale: 4 }).notNull(),
+  /** Already amortized when registering a partially/fully amortized asset. */
+  amortizare_initiala: decimal('amortizare_initiala', { precision: 14, scale: 4 }).notNull().default('0.0000'),
+  /** Normal useful life in months (= years × 12 from the catalog). */
+  durata_luni: int('durata_luni').notNull(),
+  /** Linear monthly amount = valoare_intrare / durata_luni (Legea 15/1994 art. 18). */
+  amortizare_lunara: decimal('amortizare_lunara', { precision: 14, scale: 4 }).notNull(),
+  data_punere_functiune: date('data_punere_functiune', { mode: 'string' }).notNull(),
+  data_casare: date('data_casare', { mode: 'string' }),
+  stare_mf: mysqlEnum('stare_mf', STARI_MF).notNull().default('in_functiune'),
+  stare: stare(),
+  ...timestamps,
+}, t => [
+  index('mf_gestiune_nr_idx').on(t.idgestiune, t.nr_inventar),
+  index('mf_gestiune_loc_idx').on(t.idgestiune, t.idloc),
+  index('mf_gestiune_stare_idx').on(t.idgestiune, t.stare_mf, t.stare),
+])
+
+/** Document headers for fixed-asset movements (entry / transfer / disposal). Reuses tipuridocumente. */
+export const mfDocumente = mysqlTable('mf_documente', {
+  id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+  idtipoperatiuni: int('idtipoperatiuni').notNull().references(() => tipuridocumente.id),
+  data: date('data', { mode: 'string' }).notNull(),
+  nrdoc: varchar('nrdoc', { length: 25 }).notNull(),
+  idgestiune: int('idgestiune', { unsigned: true }).notNull().references(() => gestiuni.id),
+  observatii: varchar('observatii', { length: 255 }),
+  stare: stare(),
+  ...timestamps,
+}, t => [
+  index('mf_doc_gestiune_data_idx').on(t.idgestiune, t.data),
+  index('mf_doc_nrdoc_idx').on(t.idgestiune, t.idtipoperatiuni, t.nrdoc),
+])
+
+/** Lines of a fixed-asset document: one asset per line. */
+export const mfLinii = mysqlTable('mf_linii', {
+  id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+  iddocument: int('iddocument', { unsigned: true }).notNull().references(() => mfDocumente.id),
+  idmijloc: int('idmijloc', { unsigned: true }).notNull().references(() => mijloaceFixe.id),
+  idloc_sursa: int('idloc_sursa').references(() => locuri.id),
+  idloc_destinatie: int('idloc_destinatie').references(() => locuri.id),
+  valoare: decimal('valoare', { precision: 14, scale: 4 }).notNull().default('0.0000'),
+  stare: stare(),
+  ...timestamps,
+}, t => [
+  index('mf_linii_doc_idx').on(t.iddocument),
+  index('mf_linii_mijloc_idx').on(t.idmijloc),
+])
+
+/** Posted linear monthly amortization (one row per asset per calendar month). */
+export const mfAmortizari = mysqlTable('mf_amortizari', {
+  id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+  idmijloc: int('idmijloc', { unsigned: true }).notNull().references(() => mijloaceFixe.id),
+  an: int('an').notNull(),
+  luna: tinyint('luna').notNull(),
+  suma: decimal('suma', { precision: 14, scale: 4 }).notNull(),
+  data_calcul: date('data_calcul', { mode: 'string' }).notNull(),
+  iduser: int('iduser', { unsigned: true }).references(() => utilizatori.id),
+  stare: stare(),
+  ...timestamps,
+}, t => [
+  index('mf_amort_mijloc_idx').on(t.idmijloc, t.an, t.luna),
+  index('mf_amort_perioada_idx').on(t.an, t.luna),
+])
+
 export type Utilizator = typeof utilizatori.$inferSelect
 export type Gestiune = typeof gestiuni.$inferSelect
 export type Categorie = typeof categorii.$inferSelect
@@ -178,3 +260,7 @@ export type Operatiune = typeof operatiuni.$inferSelect
 export type Tranzactie = typeof tranzactii.$inferSelect
 export type NewTranzactie = typeof tranzactii.$inferInsert
 export type Setari = typeof setari.$inferSelect
+export type MijlocFix = typeof mijloaceFixe.$inferSelect
+export type MfDocument = typeof mfDocumente.$inferSelect
+export type MfLinie = typeof mfLinii.$inferSelect
+export type MfAmortizare = typeof mfAmortizari.$inferSelect

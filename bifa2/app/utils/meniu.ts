@@ -14,6 +14,17 @@ export const MENIU: { titlu: string, items: ElementMeniu[] }[] = [
     ],
   },
   {
+    titlu: 'Mijloace fixe',
+    items: [
+      { label: 'Registru MF', icon: 'pi pi-building', to: '/mijloace-fixe' },
+      { label: 'Înregistrare', icon: 'pi pi-plus-circle', to: '/mijloace-fixe/inregistrare' },
+      { label: 'Transfer', icon: 'pi pi-arrows-h', to: '/mijloace-fixe/transfer' },
+      { label: 'Casare', icon: 'pi pi-trash', to: '/mijloace-fixe/casare' },
+      { label: 'Amortizare lunară', icon: 'pi pi-calendar', to: '/mijloace-fixe/amortizare' },
+      { label: 'Documente MF', icon: 'pi pi-folder', to: '/mijloace-fixe/documente' },
+    ],
+  },
+  {
     titlu: 'Rapoarte',
     items: [
       { label: 'Balanța analitică', icon: 'pi pi-chart-bar', to: '/rapoarte?raport=balanta' },
@@ -21,6 +32,8 @@ export const MENIU: { titlu: string, items: ElementMeniu[] }[] = [
       { label: 'Situație repere', icon: 'pi pi-map', to: '/rapoarte?raport=situatie' },
       { label: 'Fișa de cont', icon: 'pi pi-id-card', to: '/rapoarte?raport=fisa' },
       { label: 'Registru documente', icon: 'pi pi-book', to: '/rapoarte?raport=registru' },
+      { label: 'Fișa mijlocului fix', icon: 'pi pi-id-card', to: '/rapoarte?raport=fisa-mf' },
+      { label: 'Situație amortizare', icon: 'pi pi-percentage', to: '/rapoarte?raport=amortizare-mf' },
     ],
   },
   {
