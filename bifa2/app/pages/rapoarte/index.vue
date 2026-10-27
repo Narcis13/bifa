@@ -39,7 +39,6 @@ const f = reactive({
   perioada: [new Date(azi.getFullYear(), 0, 1), azi] as Date[],
   includeFaraStoc: false,
   faraCantitati: false,
-  doarPret: false,
   material: null as { id: number, denumire: string } | null,
   mijloc: null as { id: number, nr_inventar: string, denumire: string } | null,
   an: azi.getFullYear(),
@@ -105,8 +104,7 @@ function genereaza() {
     }
   }
   if (raport.value !== 'fisa' && raport.value !== 'registru' && raport.value !== 'situatie' && f.includeFaraStoc) query.includeFaraStoc = 'true'
-  if (raport.value === 'inventar' && f.doarPret) query.doarPret = 'true'
-  else if (raport.value === 'inventar' && f.faraCantitati) query.faraCantitati = 'true'
+  if (raport.value === 'inventar' && f.faraCantitati) query.faraCantitati = 'true'
   if (raport.value === 'fisa') query.idreper = String(f.material!.id)
   return navigateTo({ path: `/rapoarte/${raport.value}`, query })
 }
@@ -318,21 +316,8 @@ const optiuniStare = [{ v: null, l: 'Toate stările' }, ...STARI_MATERIAL.map(s 
               v-model="f.faraCantitati"
               input-id="faracantitati"
               binary
-              :disabled="f.doarPret"
             />
             <label for="faracantitati">Afișează lista fără cantități (stoc scriptic și valoare goale, pentru inventariere faptică)</label>
-          </div>
-          <div
-            v-if="raport === 'inventar'"
-            class="field field-wide check"
-          >
-            <Checkbox
-              v-model="f.doarPret"
-              input-id="doarpret"
-              binary
-              @update:model-value="(v: boolean) => { if (v) f.faraCantitati = false }"
-            />
-            <label for="doarpret">Doar denumire și preț (fără cantități)</label>
           </div>
         </template>
         <Message
